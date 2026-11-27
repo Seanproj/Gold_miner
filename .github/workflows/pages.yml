@@ -1,0 +1,53 @@
+name: Deploy site (GitHub Pages)
+
+# Public website: https://seanproj.github.io/Gold_miner/
+# Rebuilds with fresh data on every push and on weekdays at 16:13 KST (after the KRX gold close).
+on:
+  push:
+    branches: [claude/hopeful-mendel-vex26s]
+  schedule:
+    - cron: "13 7 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Refresh data, models and pages
+        run: |
+          if ! bash scripts/update.sh; then
+            echo "::warning::data refresh failed; deploying the last committed data"
+            git checkout -- data site
+          fi
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

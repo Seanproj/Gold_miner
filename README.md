@@ -3,6 +3,8 @@
 금 가격 측정과 과거 데이터 기반 미래 분석으로 금거래소의 매입·매도 판단을 돕는 대시보드입니다.
 
 ## 링크
+**공개 웹사이트: https://seanproj.github.io/Gold_miner/** — 누구나 열 수 있습니다. GitHub Actions(`.github/workflows/pages.yml`)가 푸시할 때마다, 그리고 평일 16:13 KST에 최신 데이터로 다시 빌드해 배포합니다.
+
 **https://claude.ai/artifact/YAZwEiSzB8jXDzhcqwxHaC** — 메인 보드 + 상세 분석 (claude.ai 아티팩트, 기본 비공개 · 페이지의 Share 메뉴로 공유)
 
 평일 16:13 KST 예약 작업이 `scripts/update.sh` → `etl/build_artifact.py` → 같은 링크로 재게시 → 브랜치 커밋을 실행하고, 경고·주의 알림이 있으면 푸시로 알려줍니다.
@@ -18,7 +20,7 @@
 ```bash
 bash scripts/update.sh
 ```
-GitHub Actions(`.github/workflows/daily-update.yml`)가 평일 06:40 KST에 같은 작업을 돌리고 결과를 커밋합니다(기본 브랜치에 병합된 뒤부터 동작).
+공개 웹사이트는 GitHub Actions(`.github/workflows/pages.yml`)가 같은 작업을 돌려 배포합니다.
 
 단계별 실행:
 ```bash
