@@ -82,6 +82,18 @@ h2{font-size:clamp(26px,3vw,34px);margin:0;letter-spacing:-1.2px;font-weight:900
 .stat .v{font-size:32px;font-weight:900;letter-spacing:-1.2px;margin-top:4px}
 .stat .s{font-size:12.5px;color:var(--dim)}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.ahead{margin-top:16px;padding:20px;border-radius:16px;border:1px solid var(--line);background:var(--bg2)}
+.ahead-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.ahead-h b{font-size:17px;letter-spacing:-.4px}
+.ahead-h span{font-size:13px;color:var(--muted)}
+.rbar{position:relative;height:92px;margin:18px 28px 0}
+.rbar .track{position:absolute;left:0;right:0;top:44px;height:12px;border-radius:99px;background:var(--line2)}
+.rbar .band{position:absolute;top:44px;height:12px;border-radius:99px;background:linear-gradient(90deg,color-mix(in srgb,var(--cyan) 35%,transparent),var(--cyan),color-mix(in srgb,var(--cyan) 35%,transparent))}
+.rbar .tick{position:absolute;top:0;transform:translateX(-50%);text-align:center;font-size:12px;color:var(--muted);white-space:nowrap}
+.rbar .tick b{display:block;color:var(--text);font-size:14px}
+.rbar .tick.now{top:62px;font-weight:700;color:var(--text)}
+.rbar .tick.now::before{content:"";display:block;width:3px;height:22px;margin:-24px auto 4px;border-radius:2px;background:var(--text)}
+.rbar .tick:not(.now)::after{content:"";display:block;width:2px;height:8px;margin:2px auto 0;background:var(--muted)}
 .chip{font-size:13px;padding:5px 12px;border-radius:99px;border:1px solid var(--line2);color:var(--muted);font-weight:600}
 .keyline{margin-top:16px;display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;background:color-mix(in srgb,var(--gold) 9%,transparent);border:1px solid color-mix(in srgb,var(--gold) 28%,transparent);font-size:15px}
 .keyline svg{color:var(--gold);margin-top:2px}
@@ -132,9 +144,10 @@ label.ctl{display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--
 footer{margin:72px 0 0;padding:24px 0 48px;border-top:1px solid var(--line);color:var(--dim);font-size:13px;line-height:1.7}
 
 @media (max-width:1080px){.price,.verdict{grid-column:span 12}.glance{grid-column:span 6}.g2,.plan-top{grid-template-columns:1fr}.g3{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
-@media (max-width:560px){.wrap{padding:0 16px}.bento{gap:12px;padding-top:16px}.tile{padding:20px}.price{padding:22px}.glance{grid-column:span 6;padding:16px}.gl-v{font-size:22px}.styles{grid-template-columns:1fr}.card{padding:20px}.stat .v{font-size:26px}.sched{font-size:14px}.won{letter-spacing:-2px}}
+@media (max-width:560px){.wrap{padding:0 16px}.bento{gap:12px;padding-top:16px}.tile{padding:20px}.price{padding:22px}.glance{grid-column:span 6;padding:16px}.gl-v{font-size:22px}.styles{grid-template-columns:1fr}.card{padding:20px}.stat .v{font-size:22px;white-space:nowrap}.stat{padding:14px}.sched{font-size:14px}.won{letter-spacing:-2px}}
 </style>
 <script src="data/gm_data.js"></script>
+<script src="data/gm_models.js"></script>
 <script src="js/engine.js"></script>
 </head>
 <body>
@@ -214,6 +227,7 @@ footer{margin:72px 0 0;padding:24px 0 48px;border-top:1px solid var(--line);colo
         <div class="stat"><div class="k">나빴던 경우 · 하위 10%</div><div class="v num" id="sP10">—</div><div class="s">10번 중 1번은 이보다 나빴음</div></div>
         <div class="stat"><div class="k">좋았던 경우 · 상위 10%</div><div class="v num" id="sP90">—</div><div class="s">10번 중 1번은 이보다 좋았음</div></div>
       </div>
+      <div class="ahead" id="ahead"></div>
       <div class="chips" id="episodes"></div>
       <div class="keyline"><svg class="ico"><use href="#i-info"/></svg><div id="honestKey">—</div></div>
       <details class="why"><summary>왜 그런가요? 자세히 보기</summary><div id="honest">—</div></details>
@@ -335,6 +349,7 @@ function render(){
   $("#honestKey").innerHTML=FS.n<60?`<b>표본이 적습니다.</b> 비슷한 사례가 ${FS.n}일뿐이라 참고만 하세요.`:`사례가 ${FS.episodes.length}번뿐이라 확실한 근거는 아닙니다. 가장 중요한 기준은 <b>장기 평균선 $${fmt(s1000[n],0)} (${fmt(wonDon(s1000[n])/1e4,1)}만원/돈)</b>을 지키는지입니다.`;
   $("#honest").innerHTML=`금은 "싸 보일 때"보다 "오르는 중일 때" 산 쪽이 평균적으로 더 좋았습니다. 오르는 추세가 한동안 이어지는 성향이 강한 자산이기 때문입니다. 특히 4년 평균보다도 크게 내려간 때(하위 20%)에 샀다면 1년 뒤 평균 <b>${sgn(longBelow.mean*100)}</b>, 오른 확률 <b>${(longBelow.up*100).toFixed(0)}%</b>에 그쳤습니다. 반대로 평소(모든 날)에는 평균 <b>${sgn(ALL.mean*100)}</b>, 오른 확률 <b>${(ALL.up*100).toFixed(0)}%</b>였습니다. 같은 날짜가 여러 번 겹쳐 세어지므로(1년 보유 기간이 겹침) 실제 독립 사례 수는 표시된 날짜 수보다 훨씬 적습니다.`;
 
+  renderAhead();
   renderPlan();renderRules();
   $("#foot").innerHTML=`Gold Miner · 금 가격 COMEX 선물(GC=F) 종가 · 환율 FRED(DEXKOUS) · 데이터 ${D.gold.date}<br>정보 제공 목적이며 투자 권유가 아닙니다. 과거 통계는 미래를 보장하지 않습니다. 원/돈 가격은 국제가 환산 기준이며 실제 매장 가격(수수료·부가세 포함)과 다릅니다.`;
   first=false;
@@ -379,6 +394,21 @@ function pmap(){
     const anchor=x<80?"start":x>W-80?"end":"middle";
     txt(svg,x,y+13,`${name} $${fmt(v,0)}`,{"text-anchor":anchor,"font-size":main?14:12.5,"font-weight":main?900:700,fill:css(c)});
     txt(svg,x,y+29,`${fmt(wonDon(v)/1e4,1)}만원/돈`,{"text-anchor":anchor,"font-size":11.5,fill:css("--dim")})});
+}
+
+// ---- Q2: range for the next 12 months (validated model)
+function renderAhead(){
+  const M=window.GM_MODELS,box=$("#ahead");if(!M||!M.range||!M.range[252]){box.style.display="none";return}
+  const r=M.range[252],q=r.now.q.map(v=>P*Math.exp(v)),c80=r.eval.model.c80;
+  const lo=Math.min(q[0],P)*.95,hi=q[4]*1.03,pos=v=>((v-lo)/(hi-lo)*100).toFixed(2)+"%";
+  const won=v=>fmt(wonDon(v)/1e4,1)+"만원";
+  box.innerHTML=`<div class="ahead-h"><b>앞으로 1년, 어디쯤일까요?</b><span>10번 중 8번은 이 범위 안 · 과거 검증 적중률 ${(c80*100).toFixed(0)}%</span></div>
+   <div class="rbar"><div class="track"></div><div class="band" style="left:${pos(q[0])};width:calc(${pos(q[4])} - ${pos(q[0])})"></div>
+   <div class="tick" style="left:${pos(q[0])}">하단 10%<b class="num">${won(q[0])}</b></div>
+   <div class="tick" style="left:${pos(q[2])}">중앙<b class="num">${won(q[2])}</b></div>
+   <div class="tick" style="left:${pos(q[4])}">상단 10%<b class="num">${won(q[4])}</b></div>
+   <div class="tick now" style="left:${pos(P)}">지금 ${won(P)}</div></div>
+   <div style="font-size:13.5px;color:var(--muted);margin-top:18px">원/돈 기준(현재 환율) · 국제가 $${fmt(q[0],0)} ~ $${fmt(q[4],0)}. <b style="color:var(--text)">오를지 내릴지는 어떤 모델도 동전 던지기보다 크게 낫지 않았습니다.</b> 그래서 방향 대신 "얼마나 움직일 수 있는지"만 보여드립니다.</div>`;
 }
 
 // ---- Q3 plan

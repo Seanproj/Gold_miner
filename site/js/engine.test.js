@@ -116,3 +116,43 @@ test("plan costs: lump-sum plan costs exactly the day's price", () => {
   close(w.reduce((a, b) => a + b, 0), 1);
   assert.ok(Number.isNaN(E.planCost(g, "defensive", 590)));
 });
+
+test("analog forecast only uses outcomes known at forecast time", () => {
+  const g = makeGold(2200), F = E.features(g), i = 1800, h = 63;
+  const a = E.analogForecast(g, F, i, h, 60);
+  const g2 = { t: g.t, p: g.p.map((v, j) => (j > i ? v * 4 : v)) };
+  const b = E.analogForecast(g2, E.features(g2), i, h, 60);
+  assert.ok(a && b);
+  assert.deepEqual(b.q, a.q);
+  for (let k = 1; k < a.q.length; k++) assert.ok(a.q[k] >= a.q[k - 1]);
+});
+
+test("forecast evaluation returns coverage between 0 and 1", () => {
+  const g = makeGold(2600), ev = E.evaluateForecast(g, E.features(g), 63, { start: 1500, step: 42, k: 60 });
+  assert.ok(ev.n > 5);
+  for (const key of ["model", "base"]) assert.ok(ev[key].c80 >= 0 && ev[key].c80 <= 1);
+});
+
+test("HMM recovers two clearly separated regimes", () => {
+  let s = 3; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  const gauss = () => Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd());
+  const x = []; for (let b = 0; b < 8; b++) for (let k = 0; k < 60; k++) x.push((b % 2 ? 0.02 : -0.02) + 0.005 * gauss());
+  const m = E.hmmFit(x, 2, 80);
+  assert.ok(Math.abs(m.mu[0] + 0.02) < 0.004 && Math.abs(m.mu[1] - 0.02) < 0.004, JSON.stringify(m.mu));
+  assert.ok(m.filtered.every((r) => Math.abs(r[0] + r[1] - 1) < 1e-6));
+});
+
+test("signal validation buckets cover the sample", () => {
+  const g = makeGold(1800), sc = g.p.map((_, i) => (i % 100) - 50);
+  const v = E.signalValidation(g, sc, [21]);
+  assert.equal(v.bins.length, 5);
+  assert.ok(isFinite(v.ic[21]));
+});
+
+test("range model: ordered quantiles, λ ≥ 1, today's range ignores nothing but the past", () => {
+  const g = makeGold(2600), rm = E.rangeModel(g, [63], { start: 1500, step: 42 });
+  const r = rm[63];
+  assert.ok(r.eval.n > 5 && r.now && r.now.lam >= 1);
+  for (let k = 1; k < r.now.q.length; k++) assert.ok(r.now.q[k] >= r.now.q[k - 1]);
+  assert.ok(r.eval.model.c80 >= 0 && r.eval.model.c80 <= 1);
+});

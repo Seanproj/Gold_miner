@@ -147,6 +147,7 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
 @media (max-width:560px){.ctrls{grid-template-columns:1fr 1fr}.k4{grid-template-columns:1fr}.qa,.d4{grid-template-columns:1fr 1fr}.card{padding:18px}.factor{grid-template-columns:112px 1fr 34px}.mrow{grid-template-columns:1fr auto}.mrow .imp{grid-column:2;justify-self:end}.ch{flex-wrap:wrap}.ch .end{margin-left:0;width:100%}}
 </style>
 <script src="data/gm_data.js"></script>
+<script src="data/gm_models.js"></script>
 <script src="js/engine.js"></script>
 </head>
 <body>
@@ -187,6 +188,7 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
       <a href="#patterns"><svg><use href="#i-wave"/></svg>패턴 분석</a>
       <a href="#signal"><svg><use href="#i-target"/></svg>매입·매도 시그널</a>
       <a href="#forecast"><svg><use href="#i-fan"/></svg>미래 분석</a>
+      <a href="#models"><svg><use href="#i-db"/></svg>예측 모델 검증</a>
       <a href="#backtest"><svg><use href="#i-flask"/></svg>백테스트</a>
       <a href="#desk"><svg><use href="#i-desk"/></svg>거래 데스크</a>
       <a href="#quality"><svg><use href="#i-db"/></svg>데이터 품질</a>
@@ -289,7 +291,7 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
     <div class="grid k3">
       <section id="signal" class="card">
         <div class="ch"><span class="ic" style="--ac:var(--violet)"><svg><use href="#i-target"/></svg></span>
-          <div><h3>매입·매도 시그널</h3><p>요인별 −2 ~ +2 · 가중합 −100 ~ +100</p></div></div>
+          <div><h3>매입·매도 시그널</h3><p>요인별 −2 ~ +2 · 가중합 −100 ~ +100</p></div><div class="end"><a class="pill manual" href="#models" title="과거 검증에서 이후 수익률과 상관이 거의 없었습니다">예측력 검증: 없음</a></div></div>
         <div style="display:flex;gap:14px;align-items:center;margin-bottom:8px"><div id="ringMain"></div><div id="actions" style="flex:1;font-size:13px"></div></div>
         <div id="factors"></div>
       </section>
@@ -307,6 +309,34 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
         <div id="condStats" style="margin-top:8px"></div>
       </section>
     </div>
+
+    <!-- PHASE 4: MODELS -->
+    <section id="models">
+      <div class="sh"><div><h2>예측 모델 검증</h2><p>모든 모델을 "그 시점에 알 수 있던 데이터"로만 매달 다시 돌려 실제 결과와 비교했습니다</p></div><span class="sub num" id="mGen"></span></div>
+      <div class="grid g2">
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--cyan)"><svg><use href="#i-fan"/></svg></span>
+            <div><h3>가격 범위 모델 성적표</h3><p>80% 범위 = 실제 가격이 10번 중 8번 들어와야 정상</p></div></div>
+          <div class="tscroll"><table id="mScore" class="mt"></table></div>
+          <p class="note" style="margin:12px 0 0" id="mScoreNote"></p>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--violet)"><svg><use href="#i-target"/></svg></span>
+            <div><h3>매입·매도 시그널 검증</h3><p>2004년 이후 · 시그널 점수 구간별 이후 평균 수익률 / 오른 확률</p></div></div>
+          <div class="tscroll"><table id="mSig" class="mt"></table></div>
+          <p class="note" style="margin:12px 0 0" id="mSigNote"></p>
+        </div>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <div class="ch"><span class="ic" style="--ac:var(--gold)"><svg><use href="#i-wave"/></svg></span>
+          <div><h3>시장 국면 (숨은 마르코프 모델)</h3><p>주간 수익률의 평균·변동성 패턴으로 국면을 3개로 나누고, 지금 각 국면일 확률을 계산</p></div></div>
+        <div class="grid b2">
+          <div><div class="chart" id="regChart"></div><div class="legend" style="margin-top:8px" id="regLegend"></div></div>
+          <div><div id="regNow"></div><div class="tscroll" style="margin-top:12px"><table id="regTable" class="mt"></table></div></div>
+        </div>
+        <p class="note" style="margin:12px 0 0">국면 확률은 각 시점까지의 수익률만으로 계산했습니다(필터링 확률). 단, 모델의 평균·변동성 값은 전체 기간으로 추정해 과거 색 띠에는 약간의 사후 정보가 섞여 있습니다. 국면은 "지금 시장의 성격"을 설명할 뿐 다음 국면을 예측하지는 않습니다. 고변동 국면은 평균적으로는 올랐지만 위아래로 크게 흔들린 시기(예: 2011년, 2020년, 2025~26년)입니다.</p>
+      </div>
+    </section>
 
     <!-- BACKTEST -->
     <section id="backtest">
@@ -530,7 +560,7 @@ function renderSignal(){
   const L=s>=40?["매입 우위","재고 적극 확대 · 매입 스프레드 축소"]:s>=10?["완만한 매입","재고 완만한 확대"]:s>-10?["중립","재고 목표 유지 · 양방향 정상 운영"]:s>-40?["매도 우위","재고 분할 축소 · 헤지 비율 상향"]:["재고 축소","적극 축소 · 신규 매입 보수적"];
   $("#kSig").textContent=(s>0?"+":"")+Math.round(s);$("#kSigLbl").textContent=L[0];
   const col=s>=10?css("--pos"):s<=-10?css("--neg"):css("--violet");$("#kSigLbl").style.color=col;$("#kSigLbl").style.borderColor=col;
-  $("#actions").innerHTML=`<b style="font-size:17px;color:${col}">${L[0]}</b><div class="sub" style="margin-top:4px">${L[1]}</div><div class="sub" style="margin-top:6px;font-size:11.5px">수동 요인은 데이터 연결 전까지 0(중립)</div>`;
+  $("#actions").innerHTML=`<b style="font-size:17px;color:${col}">${L[0]}</b><div class="sub" style="margin-top:4px">${L[1]}</div><div class="sub" style="margin-top:6px;font-size:11.5px">현재 거시 환경 요약용입니다. 과거 검증에서 이후 수익률을 예측하지 못해 단독 매매 근거로 쓰지 마세요.</div>`;
   renderForecast();
 }
 
@@ -540,19 +570,55 @@ const MU=mret.reduce((a,b)=>a+b,0)/mret.length*12;
 const SIG=G.vol_1y;
 const N=x=>{const t=1/(1+.2316419*Math.abs(x)),d=.3989423*Math.exp(-x*x/2),p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return x>0?1-p:p};
 function renderForecast(){
-  const P=G.last,mu=MU+score()/100*.04;const q=(z,m)=>P*Math.exp((mu-SIG*SIG/2)*m/12+z*SIG*Math.sqrt(m/12));
-  $("#fParam").textContent=`σ ${(SIG*100).toFixed(1)}% (1년 실현) · μ ${(mu*100).toFixed(1)}% (2000년~ 평균+시그널)`;
-  const host=$("#fan");host.innerHTML="";const W=host.clientWidth||360,H=190,p={l:52,r:8,t:10,b:22};
-  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,height:H},host);const Ms=[...Array(13).keys()];
-  const lo=q(-1.4,12),hi=q(1.4,12);const X=m=>p.l+m/12*(W-p.l-p.r),Y=v=>H-p.b-(v-lo)/(hi-lo)*(H-p.t-p.b);
+  const GMm=window.GM_MODELS;const host=$("#fan");host.innerHTML="";
+  if(!GMm){host.innerHTML='<div class="empty">모델 결과 없음 — node etl/build_models.js 실행</div>';$("#fTable").innerHTML="";return}
+  const P=G.last,RG=GMm.range,Hs=[21,63,126,252],Ms=[0,1,3,6,12];
+  const qAt=(m,k)=>m===0?0:RG[Hs[[1,3,6,12].indexOf(m)]].now.q[k];
+  const price=(m,k)=>P*Math.exp(qAt(m,k));
+  const c80=RG[252].eval.model.c80;
+  $("#fParam").textContent=`보정 혼합 모델 · 과거 검증에서 80% 범위 적중 ${(c80*100).toFixed(0)}%`;
+  const W=host.clientWidth||360,H=190,p={l:52,r:8,t:10,b:22};
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,height:H},host);
+  const lo=price(12,0)*.97,hi=price(12,4)*1.02;const X=m=>p.l+m/12*(W-p.l-p.r),Y=v=>H-p.b-(v-lo)/(hi-lo)*(H-p.t-p.b);
   const st=niceStep((hi-lo)/4);for(let t=Math.ceil(lo/st)*st;t<=hi;t+=st){el("line",{x1:p.l,x2:W-p.r,y1:Y(t),y2:Y(t),stroke:css("--line")},svg);txt(svg,p.l-6,Y(t)+4,"$"+fmt(t),{"text-anchor":"end"})}
-  const band=(z,op)=>{const a=Ms.map(m=>[X(m),Y(q(z,m))]),b=Ms.map(m=>[X(m),Y(q(-z,m))]).reverse();el("path",{d:"M"+a.concat(b).map(v=>v.join(",")).join("L")+"Z",fill:css("--cyan"),"fill-opacity":op},svg)};
-  band(1.2816,.12);band(.6745,.22);
-  el("path",{d:"M"+Ms.map(m=>[X(m),Y(q(0,m))].join(",")).join("L"),stroke:css("--cyan"),"stroke-width":2.3,fill:"none"},svg);
+  const band=(a,b,op)=>{const top=Ms.map(m=>[X(m),Y(price(m,b))]),bot=Ms.map(m=>[X(m),Y(price(m,a))]).reverse();el("path",{d:"M"+top.concat(bot).map(v=>v.join(",")).join("L")+"Z",fill:css("--cyan"),"fill-opacity":op},svg)};
+  band(0,4,.12);band(1,3,.22);
+  el("path",{d:"M"+Ms.map(m=>[X(m),Y(price(m,2))].join(",")).join("L"),stroke:css("--cyan"),"stroke-width":2.3,fill:"none"},svg);
   [0,3,6,9,12].forEach(m=>txt(svg,X(m),H-5,m?m+"M":"현재",{"text-anchor":m===12?"end":m?"middle":"start"}));
-  const rows=[["비관 10%",-1.2816],["기준 50%",0],["강세 90%",1.2816]];
-  $("#fTable").innerHTML=`<tr><th>시나리오</th><th>3M</th><th>6M</th><th>12M</th></tr>`+rows.map(([n,z])=>`<tr><td>${n}</td>${[3,6,12].map(m=>{const v=q(z,m);return `<td class="num">$${fmt(v)}<br><small class="${cls(v-P)}">${v>=P?"+":"−"}${Math.abs((v/P-1)*100).toFixed(1)}%</small></td>`}).join("")}</tr>`).join("")+
-    `<tr><td>12M 상승 확률</td><td colspan="3" class="num" style="color:var(--cyan);font-weight:700">${(100*N((mu-SIG*SIG/2)/SIG)).toFixed(0)}%</td></tr>`;
+  const rows=[["하단 10%",0],["중앙 50%",2],["상단 90%",4]];
+  $("#fTable").innerHTML=`<tr><th>범위</th><th>3M</th><th>6M</th><th>12M</th></tr>`+rows.map(([nm,k])=>`<tr><td>${nm}</td>${[3,6,12].map(m=>{const v=price(m,k);return `<td class="num">$${fmt(v)}<br><small class="${cls(v-P)}">${v>=P?"+":"−"}${Math.abs((v/P-1)*100).toFixed(1)}%</small></td>`}).join("")}</tr>`).join("")+
+    `<tr><td colspan="4" class="sub" style="white-space:normal">방향(오를지 내릴지)은 예측하지 못합니다. 이 범위는 "얼마나 움직일 수 있는지"를 보여줍니다.</td></tr>`;
+}
+
+// ---------- Phase 4: model validation ----------
+function renderModels(){
+  const GMm=window.GM_MODELS;if(!GMm){$("#models").style.display="none";return}
+  $("#mGen").textContent="모델 계산 "+GMm.generated_at.replace("T"," ").slice(0,16)+" UTC";
+  const Hs=[21,63,126,252],HL={21:"1개월",63:"3개월",126:"6개월",252:"12개월"};
+  const ok=v=>Math.abs(v-.8)<=.05;
+  $("#mScore").innerHTML=`<tr><th>기간</th><th>80% 적중<br><small class="muted">채택 모델</small></th><th>80% 적중<br><small class="muted">기준선</small></th><th>정확도<br><small class="muted">vs 기준선</small></th><th>유사 국면<br><small class="muted">미채택</small></th></tr>`+Hs.map(h=>{const r=GMm.range[h].eval,a=GMm.analog[h];
+    return `<tr><td>${HL[h]}</td><td class="num" style="font-weight:700;color:${ok(r.model.c80)?css("--cyan"):css("--gold")}">${(r.model.c80*100).toFixed(0)}%</td><td class="num">${(r.base.c80*100).toFixed(0)}%</td><td class="num">${r.skill>=0?"+":"−"}${Math.abs(r.skill*100).toFixed(1)}%</td><td class="num muted">${a.skill>=0?"+":"−"}${Math.abs(a.skill*100).toFixed(1)}%</td></tr>`}).join("")+
+    `<tr><td colspan="5" class="sub" style="white-space:normal">검증 횟수 ${GMm.range[252].eval.n}~${GMm.range[21].eval.n}회 (2006년~, 매월). 정확도 = 분위수 오차가 기준선보다 얼마나 작은지(+면 더 나음).</td></tr>`;
+  $("#mScoreNote").innerHTML=`<b>결론:</b> 어떤 모델도 단순 기준선(과거 수익률 분포)보다 뚜렷하게 정확하지 않았습니다. 유사 국면 모델은 오히려 나빠서 채택하지 않았습니다. 대신 기준선은 6~12개월 범위를 너무 좁게 잡아 실제 적중률이 ${(GMm.range[126].eval.base.c80*100).toFixed(0)}~${(GMm.range[252].eval.base.c80*100).toFixed(0)}%에 그쳤습니다. 채택 모델은 과거 오차만으로 범위를 넓혀 <b>약속한 80%를 실제로 지킵니다</b>.`;
+  const sig=GMm.signal,HS=[21,63,126];
+  $("#mSig").innerHTML=`<tr><th>점수 구간</th>${HS.map(h=>`<th>${HL[h]} 뒤</th>`).join("")}<th>표본(일)</th></tr>`+sig.bins.map(b=>`<tr><td>${b.label}</td>${HS.map(h=>`<td class="num"><span class="${cls(b[h].mean)}">${(b[h].mean*100).toFixed(1)}%</span><br><small class="muted">${(b[h].up*100).toFixed(0)}%</small></td>`).join("")}<td class="num muted">${fmt(b.n)}</td></tr>`).join("")+
+    `<tr><td>순위 상관(IC)</td>${HS.map(h=>`<td class="num" style="font-weight:700">${sig.ic[h].toFixed(3)}</td>`).join("")}<td></td></tr>`;
+  $("#mSigNote").innerHTML=`<b>결론: 예측력 없음.</b> 점수가 높을수록 이후 수익률이 좋아야 하지만 구간별 차이에 일관된 방향이 없고, 순위 상관(IC)도 0에 가깝습니다(의미 있는 수준은 보통 ±0.05 이상). 시그널은 "지금 거시 환경이 금에 우호적인지"를 요약하는 설명 지표로만 쓰고, 매매 판단은 백테스트로 검증된 추세 규칙을 우선합니다.`;
+  // regimes
+  const HM=GMm.hmm,RC=["--violet","--dim","--gold"];
+  $("#regLegend").innerHTML=HM.states.map((st,k)=>`<span style="--c:var(${RC[k]})">${st.name}</span>`).join("");
+  const cur=HM.now.indexOf(Math.max(...HM.now));
+  $("#regNow").innerHTML=`<div class="sub" style="margin-bottom:8px">지금(${new Date(HM.nowDate*DAY).toISOString().slice(0,10)} 주) 국면 확률</div>`+HM.states.map((st,k)=>`<div style="display:grid;grid-template-columns:90px 1fr 46px;gap:10px;align-items:center;margin:6px 0"><b style="font-size:13.5px;${k===cur?"":"font-weight:500;color:var(--muted)"}">${st.name}</b><div style="height:10px;border-radius:6px;background:var(--line2);overflow:hidden"><i style="display:block;height:100%;width:${HM.now[k]*100}%;background:${css(RC[k])}"></i></div><span class="num" style="text-align:right;font-weight:700">${(HM.now[k]*100).toFixed(0)}%</span></div>`).join("");
+  $("#regTable").innerHTML=`<tr><th>국면</th><th>연 수익률</th><th>연 변동성</th><th>평균 지속</th><th>기간 비중</th></tr>`+HM.states.map((st,k)=>`<tr><td><span class="dot" style="--c:var(${RC[k]})"></span>${st.name}</td><td class="num ${cls(st.muAnn)}">${(st.muAnn*100).toFixed(1)}%</td><td class="num">${(st.sigAnn*100).toFixed(1)}%</td><td class="num">${st.stayWeeks}주</td><td class="num">${(st.share*100).toFixed(0)}%</td></tr>`).join("");
+  // ribbon chart: last 10 years
+  const host=$("#regChart");host.innerHTML="";const W=host.clientWidth||600,H=260,p={l:54,r:10,t:10,b:26};
+  const from=GOLD.t.at(-1)-3653;const rb=HM.ribbon.filter(r=>r[0]>=from);const gi=GOLD.t.map((d,i)=>[d,GOLD.p[i]]).filter(x=>x[0]>=from).filter((_,i)=>i%2===0);
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,height:H},host);const x0=from,x1=GOLD.t.at(-1);const X=d=>p.l+(d-x0)/(x1-x0)*(W-p.l-p.r);
+  const lo=Math.log(Math.min(...gi.map(x=>x[1]))*.92),hi=Math.log(Math.max(...gi.map(x=>x[1]))*1.05);const Y=v=>H-p.b-(Math.log(v)-lo)/(hi-lo)*(H-p.t-p.b);
+  rb.forEach((r,i)=>{const nx=i+1<rb.length?rb[i+1][0]:x1;el("rect",{x:X(r[0]),y:p.t,width:Math.max(.5,X(nx)-X(r[0])),height:H-p.t-p.b,fill:css(RC[r[1]]),opacity:r[1]===1?.06:.22},svg)});
+  [1000,1500,2000,3000,4000,5000].forEach(t=>{if(Math.log(t)<lo||Math.log(t)>hi)return;el("line",{x1:p.l,x2:W-p.r,y1:Y(t),y2:Y(t),stroke:css("--line")},svg);txt(svg,p.l-6,Y(t)+4,"$"+fmt(t),{"text-anchor":"end"})});
+  for(let y=new Date(from*DAY).getUTCFullYear()+1;y<=new Date(x1*DAY).getUTCFullYear();y+=2)txt(svg,X(Date.UTC(y,0,1)/DAY),H-8,y,{"text-anchor":"middle"});
+  el("path",{d:"M"+gi.map(x=>[X(x[0]).toFixed(1),Y(x[1]).toFixed(1)].join(",")).join("L"),fill:"none",stroke:css("--gold"),"stroke-width":2},svg);
 }
 
 // ---------- similar regimes (monthly: trailing 12m vs forward 12m) ----------
@@ -704,7 +770,7 @@ const links=[...document.querySelectorAll(".side a")];
 addEventListener("scroll",()=>{let cur=links[0];links.forEach(a=>{const t=document.querySelector(a.getAttribute("href"));if(t&&t.getBoundingClientRect().top<160)cur=a});links.forEach(a=>a.classList.toggle("on",a===cur))},{passive:true});
 
 // ---------- theme / boot ----------
-function renderAll(){renderKPI();renderPrice();renderMacro();renderDual();renderCorr();renderSeason();renderFactors();renderSignal();renderCond();renderBT();renderDesk();renderQuality()}
+function renderAll(){renderKPI();renderPrice();renderMacro();renderDual();renderCorr();renderSeason();renderFactors();renderSignal();renderCond();renderModels();renderBT();renderDesk();renderQuality()}
 window.GMUI.onChange(renderAll);
 renderAll();
 window.GMUI.init({asOf:G.date});

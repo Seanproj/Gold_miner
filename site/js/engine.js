@@ -382,6 +382,210 @@
     return { n: d.length, mean: d.reduce((a, b) => a + b, 0) / (d.length || 1), cheaper: d.filter((x) => x < 0).length / (d.length || 1), best10: s[Math.floor(s.length * 0.1)], worst10: s[Math.floor(s.length * 0.9)] };
   }
 
-  return { temperature, priceAtTemp, ZONES, zoneOf, forwardStats, PLANS, planWeights, planCost, planStats,
+  // ------------------------------------------------------------ Phase 4: models
+  /** Percentile of each value among values seen before it (0..1, no look-ahead). */
+  function expandingPct(vals, minObs = 250) {
+    const seen = [], out = new Array(vals.length).fill(NaN);
+    for (let i = 0; i < vals.length; i++) {
+      const v = vals[i]; if (!isFinite(v)) continue;
+      if (seen.length >= minObs) out[i] = rankIn(seen, v) / seen.length;
+      seen.splice(rankIn(seen, v), 0, v);
+    }
+    return out;
+  }
+
+  /** Feature matrix for analog forecasts. Every feature uses data up to day i only. */
+  function features(gold) {
+    const p = gold.p, n = p.length;
+    const tS = temperature(gold, 200).temp, tL = temperature(gold, 1000).temp;
+    const p63 = p.map((v, i) => (i >= 63 ? v / p[i - 63] - 1 : NaN));
+    const vol = rollVol(p, 60);
+    const mom = expandingPct(p63), vp = expandingPct(vol);
+    const X = [];
+    for (let i = 0; i < n; i++) X.push([tS[i] / 100, tL[i] / 100, mom[i], vp[i]]);
+    return { X, names: ["1년 온도", "4년 온도", "3개월 모멘텀", "변동성"] };
+  }
+
+  const QS = [0.1, 0.25, 0.5, 0.75, 0.9];
+  function quantile(sorted, q) {
+    if (!sorted.length) return NaN;
+    const h = (sorted.length - 1) * q, lo = Math.floor(h);
+    return sorted[lo] + (sorted[Math.min(lo + 1, sorted.length - 1)] - sorted[lo]) * (h - lo);
+  }
+
+  /** Analog (nearest-neighbour) forecast of the `horizon`-day log return at day i.
+   *  Uses only days j whose outcome was already known at i (j + horizon <= i). */
+  function analogForecast(gold, F, i, horizon, k = 120, stride = 3) {
+    const p = gold.p, x = F.X[i];
+    if (!x || x.some((v) => !isFinite(v))) return null;
+    const cand = [];
+    for (let j = 0; j + horizon <= i; j += stride) {
+      const y = F.X[j]; if (y.some((v) => !isFinite(v))) continue;
+      let d = 0; for (let k2 = 0; k2 < x.length; k2++) d += (x[k2] - y[k2]) ** 2;
+      cand.push([d, Math.log(p[j + horizon] / p[j])]);
+    }
+    if (cand.length < k) return null;
+    cand.sort((a, b) => a[0] - b[0]);
+    const r = cand.slice(0, k).map((c) => c[1]).sort((a, b) => a - b);
+    return { q: QS.map((q) => quantile(r, q)), up: r.filter((v) => v > 0).length / r.length, n: r.length };
+  }
+
+  /** Unconditional baseline: all past outcomes known at day i. */
+  function baselineForecast(gold, i, horizon) {
+    const p = gold.p, r = [];
+    for (let j = 0; j + horizon <= i; j++) r.push(Math.log(p[j + horizon] / p[j]));
+    if (r.length < 250) return null;
+    r.sort((a, b) => a - b);
+    return { q: QS.map((q) => quantile(r, q)), up: r.filter((v) => v > 0).length / r.length, n: r.length };
+  }
+
+  const pinball = (q, pred, y) => (y >= pred ? q * (y - pred) : (1 - q) * (pred - y));
+
+  /** Walk-forward evaluation every `step` days: forecast, then score against what happened. */
+  function evaluateForecast(gold, F, horizon, o = {}) {
+    const step = o.step || 21, start = o.start || 1500, k = o.k || 120;
+    const acc = { model: { pin: 0, c80: 0, c50: 0, brier: 0 }, base: { pin: 0, c80: 0, c50: 0, brier: 0 }, n: 0, series: [] };
+    for (let i = start; i + horizon < gold.p.length; i += step) {
+      const m = analogForecast(gold, F, i, horizon, k), b = baselineForecast(gold, i, horizon);
+      if (!m || !b) continue;
+      const y = Math.log(gold.p[i + horizon] / gold.p[i]), up = y > 0 ? 1 : 0;
+      for (const [key, f] of [["model", m], ["base", b]]) {
+        const a = acc[key];
+        a.pin += QS.reduce((s2, q, qi) => s2 + pinball(q, f.q[qi], y), 0) / QS.length;
+        a.c80 += y >= f.q[0] && y <= f.q[4] ? 1 : 0;
+        a.c50 += y >= f.q[1] && y <= f.q[3] ? 1 : 0;
+        a.brier += (f.up - up) ** 2;
+      }
+      acc.n++; acc.series.push({ t: gold.t[i], y, m: m.q, b: b.q });
+    }
+    for (const key of ["model", "base"]) { const a = acc[key]; for (const f of ["pin", "c80", "c50", "brier"]) a[f] /= acc.n || 1; }
+    acc.skill = 1 - acc.model.pin / acc.base.pin; // >0: model beats baseline
+    return acc;
+  }
+
+  /** Signal score vs subsequent returns, by score bucket, plus rank IC. */
+  const SCORE_BINS = [[-1e9, -30, "−30 이하"], [-30, -10, "−30~−10"], [-10, 10, "−10~+10"], [10, 30, "+10~+30"], [30, 1e9, "+30 이상"]];
+  function signalValidation(gold, score, horizons = [21, 63, 126]) {
+    const p = gold.p, out = { bins: [], ic: {} };
+    const rank = (a) => { const idx = a.map((v, i) => [v, i]).sort((x, y) => x[0] - y[0]); const r = new Array(a.length); idx.forEach(([, i], k) => (r[i] = k)); return r; };
+    for (const h of horizons) {
+      const xs = [], ys = [];
+      for (let i = 1000; i + h < p.length; i++) if (isFinite(score[i])) { xs.push(score[i]); ys.push(p[i + h] / p[i] - 1); }
+      const rx = rank(xs), ry = rank(ys), m = (xs.length - 1) / 2;
+      let sxy = 0, sxx = 0; for (let k = 0; k < xs.length; k++) { sxy += (rx[k] - m) * (ry[k] - m); sxx += (rx[k] - m) ** 2; }
+      out.ic[h] = sxy / sxx;
+    }
+    for (const [a, b, label] of SCORE_BINS) {
+      const row = { label, n: 0 };
+      for (const h of horizons) {
+        const f = []; for (let i = 1000; i + h < p.length; i++) if (score[i] >= a && score[i] < b) f.push(p[i + h] / p[i] - 1);
+        row.n = Math.max(row.n, f.length);
+        row[h] = { mean: f.reduce((x, y) => x + y, 0) / (f.length || 1), up: f.filter((x) => x > 0).length / (f.length || 1), n: f.length };
+      }
+      out.bins.push(row);
+    }
+    return out;
+  }
+
+  // ---- Gaussian hidden Markov model (regimes) on a return series
+  function hmmFit(x, K = 3, iters = 60, seed = 1) {
+    const T = x.length, mean = x.reduce((a, b) => a + b, 0) / T, sd = Math.sqrt(x.reduce((a, b) => a + (b - mean) ** 2, 0) / T);
+    const sorted = [...x].sort((a, b) => a - b);
+    let mu = Array.from({ length: K }, (_, k) => quantile(sorted, (k + 0.5) / K));
+    let sg = Array(K).fill(sd), pi = Array(K).fill(1 / K);
+    let A = Array.from({ length: K }, (_, i) => Array.from({ length: K }, (_, j) => (i === j ? 0.9 : 0.1 / (K - 1))));
+    const pdf = (v, m, s) => Math.exp(-0.5 * ((v - m) / s) ** 2) / (s * Math.sqrt(2 * Math.PI)) + 1e-300;
+    let ll = -Infinity, alpha, beta, c, gamma;
+    for (let it = 0; it < iters; it++) {
+      // forward (scaled)
+      alpha = Array.from({ length: T }, () => new Array(K)); c = new Array(T);
+      for (let k = 0; k < K; k++) alpha[0][k] = pi[k] * pdf(x[0], mu[k], sg[k]);
+      c[0] = alpha[0].reduce((a, b) => a + b, 0); alpha[0] = alpha[0].map((v) => v / c[0]);
+      for (let t = 1; t < T; t++) {
+        for (let j = 0; j < K; j++) { let s2 = 0; for (let i = 0; i < K; i++) s2 += alpha[t - 1][i] * A[i][j]; alpha[t][j] = s2 * pdf(x[t], mu[j], sg[j]); }
+        c[t] = alpha[t].reduce((a, b) => a + b, 0); alpha[t] = alpha[t].map((v) => v / c[t]);
+      }
+      // backward
+      beta = Array.from({ length: T }, () => new Array(K).fill(1));
+      for (let t = T - 2; t >= 0; t--) for (let i = 0; i < K; i++) { let s2 = 0; for (let j = 0; j < K; j++) s2 += A[i][j] * pdf(x[t + 1], mu[j], sg[j]) * beta[t + 1][j]; beta[t][i] = s2 / c[t + 1]; }
+      gamma = alpha.map((a, t) => { const g = a.map((v, k) => v * beta[t][k]); const z = g.reduce((p2, q2) => p2 + q2, 0); return g.map((v) => v / z); });
+      // M step
+      const xi = Array.from({ length: K }, () => new Array(K).fill(0));
+      for (let t = 0; t < T - 1; t++) for (let i = 0; i < K; i++) for (let j = 0; j < K; j++) xi[i][j] += (alpha[t][i] * A[i][j] * pdf(x[t + 1], mu[j], sg[j]) * beta[t + 1][j]) / c[t + 1];
+      A = xi.map((row) => { const z = row.reduce((a, b) => a + b, 0); return row.map((v) => v / z); });
+      pi = gamma[0].slice();
+      for (let k = 0; k < K; k++) {
+        let w = 0, m1 = 0; for (let t = 0; t < T; t++) { w += gamma[t][k]; m1 += gamma[t][k] * x[t]; }
+        mu[k] = m1 / w; let v2 = 0; for (let t = 0; t < T; t++) v2 += gamma[t][k] * (x[t] - mu[k]) ** 2;
+        sg[k] = Math.max(Math.sqrt(v2 / w), sd * 0.05);
+      }
+      const nll = c.reduce((a, b) => a + Math.log(b), 0);
+      if (Math.abs(nll - ll) < 1e-7) { ll = nll; break; }
+      ll = nll;
+    }
+    // order states by mean (0 = lowest)
+    const ord = mu.map((m, k) => [m, k]).sort((a, b) => a[0] - b[0]).map((v) => v[1]);
+    const re = (arr) => ord.map((k) => arr[k]);
+    return {
+      mu: re(mu), sigma: re(sg), A: ord.map((i) => ord.map((j) => A[i][j])), ll,
+      filtered: alpha.map(re), // P(state_t | x_1..x_t): uses no future data given the parameters
+      smoothed: gamma.map(re),
+    };
+  }
+
+  /** Past standardized h-day returns × today's volatility (volatility clustering). */
+  function volScaledForecast(gold, vol, i, h) {
+    const p = gold.p, z = [];
+    for (let j = 60; j + h <= i; j++) if (vol[j] > 0) z.push(Math.log(p[j + h] / p[j]) / vol[j]);
+    if (z.length < 250 || !(vol[i] > 0)) return null;
+    z.sort((a, b) => a - b);
+    return { q: QS.map((q) => quantile(z, q) * vol[i]), up: z.filter((v) => v > 0).length / z.length };
+  }
+
+  /** Adopted range model: average of baseline and volatility-scaled quantiles, then the band is
+   *  widened by λ so that past 80% bands really covered 80%. λ is estimated walk-forward from
+   *  forecasts whose outcomes were known at the time. */
+  function rangeModel(gold, horizons = [21, 63, 126, 252], o = {}) {
+    const p = gold.p, n = p.length - 1, step = o.step || 21, start = o.start || 1500;
+    const vol = rollVol(p, 60), out = {};
+    const blend = (i, h) => {
+      const a = volScaledForecast(gold, vol, i, h), b = baselineForecast(gold, i, h);
+      return a && b ? { q: QS.map((_, k) => (a.q[k] + b.q[k]) / 2), up: (a.up + b.up) / 2, base: b } : null;
+    };
+    const lamFrom = (hist, i, h) => {
+      const past = hist.filter((x) => x.i + h <= i);
+      if (past.length < 24) return 1;
+      const r = past.map((x) => Math.abs(x.y - x.med) / Math.max(1e-9, (x.hi - x.lo) / 2)).sort((a, b) => a - b);
+      return Math.max(1, r[Math.floor(r.length * 0.8)]);
+    };
+    const widen = (f, lam) => { const med = f.q[2]; return f.q.map((v) => med + (v - med) * lam); };
+    for (const h of horizons) {
+      const hist = [], acc = { model: { pin: 0, c80: 0, c50: 0 }, base: { pin: 0, c80: 0, c50: 0 }, n: 0 };
+      for (let i = start; i + h <= n; i += step) {
+        const f = blend(i, h); if (!f) continue;
+        const lam = lamFrom(hist, i, h), q = widen(f, lam), y = Math.log(p[i + h] / p[i]);
+        for (const [key, qq] of [["model", q], ["base", f.base.q]]) {
+          const a = acc[key];
+          a.pin += QS.reduce((s2, qv, k) => s2 + pinball(qv, qq[k], y), 0) / QS.length;
+          a.c80 += y >= qq[0] && y <= qq[4] ? 1 : 0; a.c50 += y >= qq[1] && y <= qq[3] ? 1 : 0;
+        }
+        acc.n++; hist.push({ i, y, med: f.q[2], lo: f.q[0], hi: f.q[4] });
+      }
+      for (const key of ["model", "base"]) for (const f of ["pin", "c80", "c50"]) acc[key][f] /= acc.n || 1;
+      acc.skill = 1 - acc.model.pin / acc.base.pin;
+      const f = blend(n, h), lam = lamFrom(hist, n, h);
+      out[h] = { eval: acc, now: f ? { q: widen(f, lam), up: f.up, lam } : null };
+    }
+    return out;
+  }
+
+  /** Weekly log returns (every 5th trading day) with their dates. */
+  function weekly(gold) {
+    const t = [], r = [];
+    for (let i = 5; i < gold.p.length; i += 5) { t.push(gold.t[i]); r.push(Math.log(gold.p[i] / gold.p[i - 5])); }
+    return { t, r };
+  }
+
+  return { volScaledForecast, rangeModel, expandingPct, features, QS, quantile, analogForecast, baselineForecast, evaluateForecast, SCORE_BINS, signalValidation, hmmFit, weekly, temperature, priceAtTemp, ZONES, zoneOf, forwardStats, PLANS, planWeights, planCost, planStats,
     sma, rsi, rollVol, alignSeries, lagByDays, FACTOR_RULES, AUTO_MAX, factorValues, signalHistory, STRATEGIES, targets, backtest, drawdown, metrics, rolling, yearly, grid, walkForward, seasonality, rollingCorr, monthEnds, GRID_FAST, GRID_SLOW };
 });
