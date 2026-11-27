@@ -93,3 +93,26 @@ test("seasonality table and yearly returns are consistent", () => {
   const total = Object.values(y).reduce((a, r) => a * (1 + r), 1);
   close(total, res.eq.at(-1), 1e-9);
 });
+
+test("temperature ranks only against the past", () => {
+  const g = makeGold(1400), k = 1000;
+  const a = E.temperature(g, 200, 300);
+  const g2 = { t: g.t, p: g.p.map((v, i) => (i > k ? v * 5 : v)) };
+  const b = E.temperature(g2, 200, 300);
+  assert.deepEqual(b.temp.slice(0, k + 1), a.temp.slice(0, k + 1));
+  assert.ok(a.temp.filter(isFinite).every((x) => x >= 0 && x <= 100));
+});
+
+test("priceAtTemp is monotonic and brackets today's price", () => {
+  const g = makeGold(1600), T = E.temperature(g, 200, 300);
+  const lo = E.priceAtTemp(T, 5), mid = E.priceAtTemp(T, 50), hi = E.priceAtTemp(T, 95);
+  assert.ok(lo < mid && mid < hi);
+});
+
+test("plan costs: lump-sum plan costs exactly the day's price", () => {
+  const g = makeGold(600);
+  close(E.planCost(g, { now: 1, tranches: 1 }, 10), 0);
+  const w = E.planWeights("balanced");
+  close(w.reduce((a, b) => a + b, 0), 1);
+  assert.ok(Number.isNaN(E.planCost(g, "defensive", 590)));
+});

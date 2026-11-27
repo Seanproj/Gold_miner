@@ -119,6 +119,7 @@
     rsi: { n: "RSI 역추세", params: { len: 14, lo: 30, hi: 70 } },
     vol: { n: "변동성 타깃", params: { target: 15, len: 60 } },
     signal: { n: "시그널 비중조절", params: {} },
+    above: { n: "추세선 위 보유", params: { len: 1000 } },
   };
 
   function targets(kind, gold, prm = {}, ctx = {}) {
@@ -140,6 +141,9 @@
     } else if (kind === "signal") {
       const sc = ctx.score || signalHistory(gold, ctx.macro);
       for (let i = 0; i < n; i++) out[i] = Math.max(0, Math.min(1, (sc[i] / AUTO_MAX + 1) / 2));
+    } else if (kind === "above") {
+      const m = sma(p, P.len);
+      for (let i = 0; i < n; i++) out[i] = p[i] > m[i] ? 1 : 0;
     } else throw new Error("unknown strategy " + kind);
     return out;
   }
@@ -320,5 +324,64 @@
     return out;
   }
 
-  return { sma, rsi, rollVol, alignSeries, lagByDays, FACTOR_RULES, AUTO_MAX, factorValues, signalHistory, STRATEGIES, targets, backtest, drawdown, metrics, rolling, yearly, grid, walkForward, seasonality, rollingCorr, monthEnds, GRID_FAST, GRID_SLOW };
+  // ------------------------------------------------------------ main board: valuation & plans
+  function rankIn(sorted, v) { let lo = 0, hi = sorted.length; while (lo < hi) { const m = (lo + hi) >> 1; if (sorted[m] < v) lo = m + 1; else hi = m; } return lo; }
+
+  /** "Price temperature": percentile (0–100) of today's deviation from a moving average,
+   *  ranked only against deviations seen BEFORE today (expanding window). */
+  function temperature(gold, len, minObs = 500) {
+    const { p } = gold, m = sma(p, len), dev = p.map((v, i) => v / m[i] - 1);
+    const seen = [], temp = new Array(p.length).fill(NaN);
+    for (let i = 0; i < p.length; i++) {
+      if (!isFinite(dev[i])) continue;
+      if (seen.length >= minObs) temp[i] = (rankIn(seen, dev[i]) / seen.length) * 100;
+      seen.splice(rankIn(seen, dev[i]), 0, dev[i]);
+    }
+    return { len, sma: m, dev, temp, sorted: seen };
+  }
+
+  /** Price at which today's temperature would equal `q` (uses today's moving average). */
+  function priceAtTemp(T, q) {
+    const s = T.sorted, k = Math.min(s.length - 1, Math.max(0, Math.round((q / 100) * (s.length - 1))));
+    return T.sma[T.sma.length - 1] * (1 + s[k]);
+  }
+
+  const ZONES = [[0, 20, "매우 저렴"], [20, 40, "저렴"], [40, 60, "보통"], [60, 80, "비쌈"], [80, 101, "매우 비쌈"]];
+  const zoneOf = (x) => ZONES.find((z) => x >= z[0] && x < z[1]) || ZONES[ZONES.length - 1];
+
+  /** Forward return statistics on days where cond(i) holds. */
+  function forwardStats(gold, cond, horizon = TD) {
+    const { p, t } = gold, f = [], ep = [];
+    for (let i = 0; i + horizon < p.length; i++) if (cond(i)) { f.push(p[i + horizon] / p[i] - 1); ep.push(t[i]); }
+    const s = [...f].sort((a, b) => a - b);
+    // distinct episodes: condition days more than 60 days apart start a new episode
+    const episodes = []; ep.forEach((d) => { if (!episodes.length || d - episodes[episodes.length - 1].end > 60) episodes.push({ start: d, end: d }); else episodes[episodes.length - 1].end = d; });
+    return { n: f.length, mean: f.reduce((a, b) => a + b, 0) / (f.length || 1), median: s.length ? s[s.length >> 1] : NaN, up: f.filter((x) => x > 0).length / (f.length || 1), p10: s[Math.floor(s.length * 0.1)], p90: s[Math.floor(s.length * 0.9)], episodes };
+  }
+
+  /** Buying plans: share bought today, then equal tranches every 21 trading days. */
+  const PLANS = {
+    aggressive: { n: "공격형", now: 0.6, tranches: 3, desc: "오늘 60%, 나머지는 2개월에 나눠" },
+    balanced: { n: "균형형", now: 0.3, tranches: 6, desc: "오늘 30%, 나머지는 5개월에 나눠" },
+    defensive: { n: "안정형", now: 0.15, tranches: 12, desc: "오늘 15%, 나머지는 11개월에 나눠" },
+  };
+  function planWeights(plan) {
+    const P = PLANS[plan] || plan, rest = (1 - P.now) / Math.max(1, P.tranches - 1);
+    return Array.from({ length: P.tranches }, (_, k) => (k === 0 ? P.now : rest));
+  }
+  /** Average cost of a plan relative to buying everything on day i (−0.03 = 3% cheaper). */
+  function planCost(gold, plan, i) {
+    const w = planWeights(plan), p = gold.p; let units = 0;
+    for (let k = 0; k < w.length; k++) { const j = i + 21 * k; if (j >= p.length) return NaN; units += w[k] / p[j]; }
+    return 1 / units / p[i] - 1;
+  }
+  function planStats(gold, plan, cond) {
+    const d = [];
+    for (let i = 0; i < gold.p.length; i++) if (cond(i)) { const c = planCost(gold, plan, i); if (isFinite(c)) d.push(c); }
+    const s = [...d].sort((a, b) => a - b);
+    return { n: d.length, mean: d.reduce((a, b) => a + b, 0) / (d.length || 1), cheaper: d.filter((x) => x < 0).length / (d.length || 1), best10: s[Math.floor(s.length * 0.1)], worst10: s[Math.floor(s.length * 0.9)] };
+  }
+
+  return { temperature, priceAtTemp, ZONES, zoneOf, forwardStats, PLANS, planWeights, planCost, planStats,
+    sma, rsi, rollVol, alignSeries, lagByDays, FACTOR_RULES, AUTO_MAX, factorValues, signalHistory, STRATEGIES, targets, backtest, drawdown, metrics, rolling, yearly, grid, walkForward, seasonality, rollingCorr, monthEnds, GRID_FAST, GRID_SLOW };
 });
