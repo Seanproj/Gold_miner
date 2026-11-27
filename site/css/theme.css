@@ -1,0 +1,75 @@
+/* Gold Miner design system — shared tokens, global header, settings.
+   Source: docs/design/dashboard_design_concept.md, docs/03_ux_review.md */
+:root{
+  --bg:#080D18; --bg2:#0C1322; --surface:#111A2B; --surface2:#16213A;
+  --line:rgba(148,170,220,.10); --line2:rgba(148,170,220,.20);
+  --text:#EDF2FC; --muted:#A3AEC4; --dim:#7D89A1;
+  --primary:#3478F6; --cyan:#20D6E8; --violet:#9B6BFF; --gold:#F5B942;
+  --glow:rgba(52,120,246,.22);
+  /* temperature scale: cold (cheap) → hot (expensive); no good/bad meaning */
+  --z0:#4C9DFF; --z1:#56C6E0; --z2:#A3AEC4; --z3:#F5A04A; --z4:#FF6A55;
+  --font:"Pretendard Variable",Pretendard,Inter,"Noto Sans KR",system-ui,-apple-system,sans-serif;
+}
+:root[data-theme="light"]{
+  --bg:#F4F6FA; --bg2:#EAEFF7; --surface:#FFFFFF; --surface2:#F7F9FC;
+  --line:rgba(20,40,80,.08); --line2:rgba(20,40,80,.16);
+  --text:#0E1626; --muted:#4A5770; --dim:#66738A;
+  --primary:#2563EB; --cyan:#0B93A5; --violet:#7448E0; --gold:#B87D08;
+  --glow:rgba(37,99,235,.12);
+  --z0:#2F7FE6; --z1:#1FA3BD; --z2:#7C889D; --z3:#D9822B; --z4:#E04A35;
+}
+/* up/down convention: Korean (red up / blue down) by default, global (green up / red down) optional */
+:root,:root[data-updown="kr"]{ --up:#FF4D5E; --down:#4A90FF; }
+:root[data-theme="light"],:root[data-theme="light"][data-updown="kr"]{ --up:#E02D3C; --down:#1F6FE5; }
+:root[data-updown="global"]{ --up:#12C99A; --down:#FF647C; }
+:root[data-theme="light"][data-updown="global"]{ --up:#0A9A76; --down:#E0435C; }
+:root{ --pos:var(--up); --neg:var(--down); }
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:8px}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+
+/* ---------- global header (same on every page) ---------- */
+.gh{position:sticky;top:0;z-index:30;backdrop-filter:saturate(1.4) blur(16px);-webkit-backdrop-filter:saturate(1.4) blur(16px);background:color-mix(in srgb,var(--bg) 78%,transparent);border-bottom:1px solid var(--line)}
+.gh-in{max-width:1280px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;gap:20px}
+.gh-logo{display:flex;gap:10px;align-items:center;font-weight:800;font-size:18px;white-space:nowrap;letter-spacing:-.3px}
+.gh-logo i{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(140deg,#FFD47A,var(--gold) 45%,#C98200);font-style:normal;font-size:12.5px;font-weight:900;color:#2A1A00;box-shadow:0 6px 18px rgba(245,185,66,.28),inset 0 1px 0 rgba(255,255,255,.5)}
+.gh-tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.gh-tabs::-webkit-scrollbar{display:none}
+.gh-tabs a{padding:8px 14px;border-radius:10px;color:var(--muted);font-size:14.5px;font-weight:600;white-space:nowrap;transition:background .15s,color .15s}
+.gh-tabs a:hover{color:var(--text);background:var(--surface)}
+.gh-tabs a.on{color:var(--text);background:var(--surface);box-shadow:inset 0 -2px 0 var(--primary)}
+.gh-tools{display:flex;gap:8px;align-items:center}
+.gh-fresh{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);padding:6px 11px;border-radius:99px;border:1px solid var(--line2);white-space:nowrap}
+.gh-fresh i{width:7px;height:7px;border-radius:50%;background:#22C55E;box-shadow:0 0 8px #22C55E}
+.gh-btn{height:36px;min-width:36px;padding:0 10px;border-radius:10px;border:1px solid var(--line2);background:var(--surface);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.gh-btn:hover{color:var(--text);border-color:color-mix(in srgb,var(--primary) 45%,var(--line2))}
+.gh-btn svg{width:17px;height:17px}
+.gh-sub{max-width:1280px;margin:0 auto;padding:0 24px 10px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.gh-sub::-webkit-scrollbar{display:none}
+.gh-sub a{font-size:13px;font-weight:600;padding:6px 12px;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;transition:all .15s}
+.gh-sub a.on{color:#fff;background:var(--primary);border-color:var(--primary)}
+.gh-sub a em{font-style:normal;opacity:.7;margin-right:4px}
+
+/* ---------- shared bits ---------- */
+details.why{margin-top:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg2)}
+details.why summary{cursor:pointer;list-style:none;padding:12px 14px;font-size:14px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:8px}
+details.why summary::-webkit-details-marker{display:none}
+details.why summary::before{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .2s}
+details.why[open] summary::before{transform:rotate(45deg)}
+details.why > div{padding:0 14px 14px;font-size:14px;color:var(--muted);line-height:1.7}
+details.why b{color:var(--text)}
+.ico{width:20px;height:20px;flex:none}
+
+/* entrance motion (hero only; content is never hidden for print/screenshots) */
+@keyframes gmIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.in{animation:gmIn .6s cubic-bezier(.2,.7,.2,1) both}
+.in.d1{animation-delay:.06s}.in.d2{animation-delay:.12s}.in.d3{animation-delay:.18s}.in.d4{animation-delay:.24s}.in.d5{animation-delay:.3s}.in.d6{animation-delay:.36s}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.in{animation:none}*{transition:none!important}}
+
+@media (max-width:760px){.gh-in{padding:0 16px;gap:10px}.gh-fresh{display:none}.gh-logo b{display:none}.gh-sub{padding:0 16px 10px}.gh-tabs a{padding:8px 10px;font-size:14px}.gh-btn .lbl{display:none}}

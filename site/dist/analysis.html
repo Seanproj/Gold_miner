@@ -7,35 +7,154 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
-/* ===== tokens (docs/design/dashboard_design_concept.md) ===== */
+/* Gold Miner design system — shared tokens, global header, settings.
+   Source: docs/design/dashboard_design_concept.md, docs/03_ux_review.md */
 :root{
-  --bg:#080D18; --bg2:#0C1322; --surface:#111A2B; --surface2:#15203A;
-  --line:rgba(148,170,220,.10); --line2:rgba(148,170,220,.18);
-  --text:#EAF0FB; --muted:#93A0B8; --dim:#66728A;
+  --bg:#080D18; --bg2:#0C1322; --surface:#111A2B; --surface2:#16213A;
+  --line:rgba(148,170,220,.10); --line2:rgba(148,170,220,.20);
+  --text:#EDF2FC; --muted:#A3AEC4; --dim:#7D89A1;
   --primary:#3478F6; --cyan:#20D6E8; --violet:#9B6BFF; --gold:#F5B942;
-  --pos:#12C99A; --neg:#FF647C;
-  --glow:rgba(52,120,246,.20);
-  --r:16px;
+  --glow:rgba(52,120,246,.22);
+  /* temperature scale: cold (cheap) → hot (expensive); no good/bad meaning */
+  --z0:#4C9DFF; --z1:#56C6E0; --z2:#A3AEC4; --z3:#F5A04A; --z4:#FF6A55;
+  --font:"Pretendard Variable",Pretendard,Inter,"Noto Sans KR",system-ui,-apple-system,sans-serif;
 }
 :root[data-theme="light"]{
-  --bg:#F3F6FB; --bg2:#E9EEF7; --surface:#FFFFFF; --surface2:#F7F9FD;
-  --line:rgba(20,40,80,.08); --line2:rgba(20,40,80,.15);
-  --text:#101828; --muted:#526079; --dim:#7F8BA0;
-  --primary:#2563EB; --cyan:#0E9FB0; --violet:#7C4DEB; --gold:#C98A0B;
-  --pos:#0A9A76; --neg:#E0435C; --glow:rgba(37,99,235,.10);
+  --bg:#F4F6FA; --bg2:#EAEFF7; --surface:#FFFFFF; --surface2:#F7F9FC;
+  --line:rgba(20,40,80,.08); --line2:rgba(20,40,80,.16);
+  --text:#0E1626; --muted:#4A5770; --dim:#66738A;
+  --primary:#2563EB; --cyan:#0B93A5; --violet:#7448E0; --gold:#B87D08;
+  --glow:rgba(37,99,235,.12);
+  --z0:#2F7FE6; --z1:#1FA3BD; --z2:#7C889D; --z3:#D9822B; --z4:#E04A35;
 }
+/* up/down convention: Korean (red up / blue down) by default, global (green up / red down) optional */
+:root,:root[data-updown="kr"]{ --up:#FF4D5E; --down:#4A90FF; }
+:root[data-theme="light"],:root[data-theme="light"][data-updown="kr"]{ --up:#E02D3C; --down:#1F6FE5; }
+:root[data-updown="global"]{ --up:#12C99A; --down:#FF647C; }
+:root[data-theme="light"][data-updown="global"]{ --up:#0A9A76; --down:#E0435C; }
+:root{ --pos:var(--up); --neg:var(--down); }
+
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 Inter,"Noto Sans KR",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:8px}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+
+/* ---------- global header (same on every page) ---------- */
+.gh{position:sticky;top:0;z-index:30;backdrop-filter:saturate(1.4) blur(16px);-webkit-backdrop-filter:saturate(1.4) blur(16px);background:color-mix(in srgb,var(--bg) 78%,transparent);border-bottom:1px solid var(--line)}
+.gh-in{max-width:1280px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;gap:20px}
+.gh-logo{display:flex;gap:10px;align-items:center;font-weight:800;font-size:18px;white-space:nowrap;letter-spacing:-.3px}
+.gh-logo i{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(140deg,#FFD47A,var(--gold) 45%,#C98200);font-style:normal;font-size:12.5px;font-weight:900;color:#2A1A00;box-shadow:0 6px 18px rgba(245,185,66,.28),inset 0 1px 0 rgba(255,255,255,.5)}
+.gh-tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.gh-tabs::-webkit-scrollbar{display:none}
+.gh-tabs a{padding:8px 14px;border-radius:10px;color:var(--muted);font-size:14.5px;font-weight:600;white-space:nowrap;transition:background .15s,color .15s}
+.gh-tabs a:hover{color:var(--text);background:var(--surface)}
+.gh-tabs a.on{color:var(--text);background:var(--surface);box-shadow:inset 0 -2px 0 var(--primary)}
+.gh-tools{display:flex;gap:8px;align-items:center}
+.gh-fresh{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);padding:6px 11px;border-radius:99px;border:1px solid var(--line2);white-space:nowrap}
+.gh-fresh i{width:7px;height:7px;border-radius:50%;background:#22C55E;box-shadow:0 0 8px #22C55E}
+.gh-btn{height:36px;min-width:36px;padding:0 10px;border-radius:10px;border:1px solid var(--line2);background:var(--surface);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.gh-btn:hover{color:var(--text);border-color:color-mix(in srgb,var(--primary) 45%,var(--line2))}
+.gh-btn svg{width:17px;height:17px}
+.gh-sub{max-width:1280px;margin:0 auto;padding:0 24px 10px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.gh-sub::-webkit-scrollbar{display:none}
+.gh-sub a{font-size:13px;font-weight:600;padding:6px 12px;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;transition:all .15s}
+.gh-sub a.on{color:#fff;background:var(--primary);border-color:var(--primary)}
+.gh-sub a em{font-style:normal;opacity:.7;margin-right:4px}
+
+/* ---------- shared bits ---------- */
+details.why{margin-top:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg2)}
+details.why summary{cursor:pointer;list-style:none;padding:12px 14px;font-size:14px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:8px}
+details.why summary::-webkit-details-marker{display:none}
+details.why summary::before{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .2s}
+details.why[open] summary::before{transform:rotate(45deg)}
+details.why > div{padding:0 14px 14px;font-size:14px;color:var(--muted);line-height:1.7}
+details.why b{color:var(--text)}
+.ico{width:20px;height:20px;flex:none}
+
+/* entrance motion (hero only; content is never hidden for print/screenshots) */
+@keyframes gmIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.in{animation:gmIn .6s cubic-bezier(.2,.7,.2,1) both}
+.in.d1{animation-delay:.06s}.in.d2{animation-delay:.12s}.in.d3{animation-delay:.18s}.in.d4{animation-delay:.24s}.in.d5{animation-delay:.3s}.in.d6{animation-delay:.36s}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.in{animation:none}*{transition:none!important}}
+
+@media (max-width:760px){.gh-in{padding:0 16px;gap:10px}.gh-fresh{display:none}.gh-logo b{display:none}.gh-sub{padding:0 16px 10px}.gh-tabs a{padding:8px 10px;font-size:14px}.gh-btn .lbl{display:none}}
+
+</style>
+<script>
+/* Gold Miner — shared UI: theme, up/down colour convention, global header, count-up.
+   Loaded in <head> so the saved theme applies before first paint. */
+(function () {
+  "use strict";
+  const root = document.documentElement;
+  const get = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
+  const set = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+  root.dataset.theme = get("gm-theme", "dark");
+  root.dataset.updown = get("gm-updown", "kr");
+  const subs = [];
+  const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+  const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+
+  function sync() {
+    const tb = document.getElementById("themeBtn"), ub = document.getElementById("udBtn");
+    if (tb) { tb.innerHTML = root.dataset.theme === "dark" ? MOON : SUN; tb.title = root.dataset.theme === "dark" ? "라이트 모드로" : "다크 모드로"; }
+    if (ub) {
+      const kr = root.dataset.updown === "kr";
+      ub.innerHTML = '<span style="color:var(--up)">▲</span><span style="color:var(--down)">▼</span><span class="lbl">' + (kr ? "한국식" : "글로벌") + "</span>";
+      ub.title = kr ? "상승 빨강 · 하락 파랑 (국내 관례). 누르면 글로벌식으로" : "상승 초록 · 하락 빨강 (글로벌). 누르면 한국식으로";
+    }
+  }
+  const fire = () => { sync(); subs.forEach((f) => f()); };
+
+  window.GMUI = {
+    onChange(f) { subs.push(f); },
+    init(opts = {}) {
+      sync();
+      const tb = document.getElementById("themeBtn"), ub = document.getElementById("udBtn");
+      if (tb) tb.onclick = () => { root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark"; set("gm-theme", root.dataset.theme); fire(); };
+      if (ub) ub.onclick = () => { root.dataset.updown = root.dataset.updown === "kr" ? "global" : "kr"; set("gm-updown", root.dataset.updown); fire(); };
+      const fr = document.getElementById("fresh");
+      if (fr && opts.asOf) fr.innerHTML = '<i></i><span>실데이터 · ' + opts.asOf + " 기준</span>";
+      // section chips: highlight the section in view
+      const chips = [...document.querySelectorAll(".gh-sub a")];
+      if (chips.length) {
+        const onScroll = () => {
+          let cur = chips[0];
+          chips.forEach((a) => { const t = document.querySelector(a.getAttribute("href")); if (t && t.getBoundingClientRect().top < 180) cur = a; });
+          chips.forEach((a) => a.classList.toggle("on", a === cur));
+        };
+        addEventListener("scroll", onScroll, { passive: true }); onScroll();
+      }
+    },
+    /** Animate a number into `el`; `format` turns a number into display HTML. */
+    countUp(el, to, format, ms = 900) {
+      if (!el) return;
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches || !isFinite(to)) { el.innerHTML = format(to); return; }
+      const t0 = performance.now();
+      const step = (t) => { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3); el.innerHTML = format(to * e); if (k < 1) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
+    },
+  };
+})();
+
+</script>
+<style>
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-size:15px;line-height:1.55}
 .num{font-variant-numeric:tabular-nums}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:6px}
 
 /* ===== shell ===== */
-.app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
-aside{position:sticky;top:0;height:100vh;padding:24px 14px;border-right:1px solid var(--line);background:linear-gradient(180deg,var(--bg2),var(--bg));display:flex;flex-direction:column;gap:6px}
+.app{display:grid;grid-template-columns:232px 1fr;min-height:calc(100vh - 64px)}
+aside{position:sticky;top:64px;height:calc(100vh - 64px);padding:24px 14px;border-right:1px solid var(--line);background:linear-gradient(180deg,var(--bg2),var(--bg));display:flex;flex-direction:column;gap:6px}
 .logo{display:flex;gap:11px;align-items:center;padding:0 10px 22px}
 .logo i{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(140deg,var(--gold),#E08A00);box-shadow:0 6px 20px rgba(245,185,66,.25);font-style:normal;font-weight:800;color:#1b1300}
 .logo b{display:block;font-size:17px;letter-spacing:-.2px}
@@ -131,7 +250,7 @@ select,input[type=number]{width:100%;background:var(--bg2);border:1px solid var(
 .qa a span{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:color-mix(in srgb,var(--ac) 16%,transparent);color:var(--ac)}
 .qa a svg{width:22px;height:22px}
 .note{font-size:12.5px;color:var(--muted);padding:10px 12px;border-radius:10px;background:var(--bg2);border:1px solid var(--line)}
-section{scroll-margin-top:20px}
+section{scroll-margin-top:84px}
 .sh{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:44px 0 16px}
 .sh h2{margin:0;font-size:22px;letter-spacing:-.3px}
 .sh p{margin:4px 0 0;color:var(--muted);font-size:14px}
@@ -573,11 +692,22 @@ window.GM_DATA={"generated_at":"2026-11-27T13:48:40+00:00","sources":{"gold":"CO
   <symbol id="i-bolt" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol>
 </svg>
 
+<header class="gh">
+  <div class="gh-in">
+    <a class="gh-logo" href="index.html"><i>Au</i><b>Gold Miner</b></a>
+    <nav class="gh-tabs" aria-label="페이지">
+      <a href="index.html">메인</a>
+      <a href="analysis.html" class="on" aria-current="page">상세 분석</a>
+      <a href="#backtest">백테스트</a>
+      <a href="#desk">거래 데스크</a>
+    </nav>
+    <div class="gh-tools"><span class="gh-fresh" id="fresh"><i></i><span>데이터 로딩</span></span><button class="gh-btn" id="udBtn" aria-label="상승·하락 색 관례 전환"></button><button class="gh-btn" id="themeBtn" aria-label="테마 전환"></button></div>
+  </div>
+</header>
 <div class="app">
   <aside>
-    <a class="logo" href="index.html"><i>Au</i><div><b>Gold Miner</b><small>상세 분석 · 예측</small></div></a>
+    <div style="padding:4px 12px 14px;font-size:12px;font-weight:700;letter-spacing:1.2px;color:var(--dim)">이 페이지 목차</div>
     <nav class="side">
-      <a href="index.html" data-ext="1"><svg><use href="#i-home"/></svg>메인 보드</a>
       <a href="#top" class="on"><svg><use href="#i-chart"/></svg>요약</a>
       <a href="#price"><svg><use href="#i-chart"/></svg>가격 분석</a>
       <a href="#patterns"><svg><use href="#i-wave"/></svg>패턴 분석</a>
@@ -592,14 +722,10 @@ window.GM_DATA={"generated_at":"2026-11-27T13:48:40+00:00","sources":{"gold":"CO
 
   <main id="top">
    <div class="wrap">
-    <div class="topbar">
-      <div class="status"><i></i><span id="statusTxt">데이터 로딩</span></div>
-      <button class="iconbtn" id="themeBtn" aria-label="테마 전환">🌙</button>
-    </div>
 
     <!-- A. HERO -->
     <div class="hero">
-      <p class="hello"><a href="index.html" style="color:var(--cyan)">← 메인 보드</a> · 상세 분석</p>
+      <p class="hello">상세 분석 · 전문가용</p>
       <h1>숫자 뒤의 근거를<br><em>자세히</em> 살펴보세요</h1>
       <p>실제 시장 데이터와 26년치 과거 데이터로 매입·매도 타이밍을 판단합니다.</p>
       <div class="tags"><span class="tag">가격 측정</span><span class="tag">백데이터 분석</span><span class="tag">매입·매도 타이밍</span></div>
@@ -875,7 +1001,7 @@ function renderKPI(){
   $("#kVol").textContent=(G.vol_1y*100).toFixed(1)+"%";
   lineChart($("#spGold"),{series:[{name:"금",color:css("--gold"),data:daily.slice(-120)}],h:48,compact:true});
   lineChart($("#spKrw"),{series:[{name:"원/g",color:css("--primary"),data:kr.slice(-120).map(([d,v])=>[ts(d),v])}],h:48,compact:true});
-  $("#sideAsOf").textContent=G.date;$("#statusTxt").textContent=`실데이터 · 금 ${G.date} · 환율 ${M.DEXKOUS?M.DEXKOUS.date:"—"}`;
+  $("#sideAsOf").textContent=G.date;
 }
 
 // ---------- price chart ----------
@@ -1100,15 +1226,14 @@ function renderQuality(){$("#genAt").textContent="ETL 실행 "+D.generated_at.re
   D.quality.map(q=>{const ok=q.rows&&q.stale_days<=10;return `<tr><td><b>${q.name}</b></td><td class="num">${fmt(q.rows)}</td><td class="num">${q.first}</td><td class="num">${q.last}</td><td class="num">${q.stale_days}일</td><td class="num">${q.max_gap_days}일</td><td class="num">${q.jumps.length?q.jumps.map(j=>`${j[0]} (${j[1]>0?"+":""}${j[1]}%)`).join("<br>"):"—"}</td><td><span class="pill ${ok?"live":"manual"}">${ok?"정상":"확인 필요"}</span></td></tr>`}).join("")}
 
 // ---------- nav highlight ----------
-const links=[...document.querySelectorAll(".side a:not([data-ext])")];
+const links=[...document.querySelectorAll(".side a")];
 addEventListener("scroll",()=>{let cur=links[0];links.forEach(a=>{const t=document.querySelector(a.getAttribute("href"));if(t&&t.getBoundingClientRect().top<160)cur=a});links.forEach(a=>a.classList.toggle("on",a===cur))},{passive:true});
 
 // ---------- theme / boot ----------
 function renderAll(){renderKPI();renderPrice();renderMacro();renderDual();renderCorr();renderSeason();renderFactors();renderSignal();renderCond();renderBT();renderDesk();renderQuality()}
-function setTheme(t){document.documentElement.dataset.theme=t;$("#themeBtn").textContent=t==="dark"?"🌙":"☀️";try{localStorage.setItem("gm-theme",t)}catch(e){}renderAll()}
-$("#themeBtn").onclick=()=>setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");
-let th="dark";try{th=localStorage.getItem("gm-theme")||"dark"}catch(e){}
-document.documentElement.dataset.theme=th;$("#themeBtn").textContent=th==="dark"?"🌙":"☀️";renderAll();
+window.GMUI.onChange(renderAll);
+renderAll();
+window.GMUI.init({asOf:G.date});
 let rt;addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(renderAll,150)});
 </script>
 </body>
