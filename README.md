@@ -10,7 +10,8 @@
 ```bash
 python etl/gold_miner_etl.py        # 수집 → 품질 검사 → data/clean, site/data/gm_data.js 생성
 python etl/build_standalone.py      # site/dist/gold_miner.html 재생성
-python -m unittest discover etl     # 테스트
+python -m unittest discover etl     # ETL 테스트
+node --test site/js/engine.test.js  # 백테스트 엔진 테스트 (미래 데이터 참조 방지 포함)
 ```
 표준 라이브러리만 사용합니다(Python 3.9+). 네트워크 허용 필요 호스트: `fred.stlouisfed.org`, `query1.finance.yahoo.com` (`stooq.com`은 예비).
 
@@ -24,6 +25,21 @@ python -m unittest discover etl     # 테스트
 | USD/KRW | FRED | DEXKOUS |
 
 미연결(수동 입력): KRX 금 시세, WGC 중앙은행 수요, CFTC 포지션 → 이후 Phase에서 연결.
+
+## 기능 현황
+| Phase | 내용 | 상태 |
+|---|---|---|
+| 1 | 데이터 파이프라인 (FRED, COMEX 금), 품질 검사 | 완료 |
+| 2 | 대시보드, 금 vs 실질금리·달러, 52주 롤링 상관, 계절성(월·요일), 연도×월 히트맵 | 완료 |
+| 3 | 일별 백테스트 랩: 전략 6종, 거래비용·현금 이자·체결 지연·리밸런싱 밴드, 성과지표, 낙폭, 연도별 수익률, 롤링 수익률, 파라미터 민감도, 워크포워드 | 완료 |
+| 4 | 시그널 검증(분위별 이후 수익률), 분위수 예측, 레짐 모델 | 예정 |
+| 5 | KRX 시세, 알림, 브리핑 | 예정 |
+
+### 백테스트 규칙 (`site/js/engine.js`)
+- 목표 비중은 그날 종가까지의 정보로만 계산하고, 체결은 다음 날 종가(기본) 또는 당일 종가에 합니다.
+- 거시 지표는 관측일 다음 날부터만 사용합니다(발표 지연 반영).
+- 거래비용은 매매한 비중에 편도 비율로 차감하고, 금을 보유하지 않은 비중은 현금 금리를 받습니다.
+- 워크포워드: 매년 직전 5년 데이터로 이동평균 조합(빠른 10~100일 × 느린 100~250일) 중 샤프 최고를 고르고, 다음 1년은 처음 보는 데이터로 운용합니다.
 
 ## 문서
 - `docs/01_feasibility.md` — 실현 가능성 평가

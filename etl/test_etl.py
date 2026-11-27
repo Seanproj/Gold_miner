@@ -49,6 +49,10 @@ class DeriveTests(unittest.TestCase):
         other = {date(2024, 1, 2): 10, date(2024, 1, 5): 20}
         self.assertEqual(etl.align(base, other), {date(2024, 1, 3): 10, date(2024, 1, 5): 20})
 
+    def test_week_end_keeps_last_obs(self):
+        s = {date(2024, 1, 1): 1, date(2024, 1, 5): 2, date(2024, 1, 8): 3}
+        self.assertEqual(etl.week_end(s), {date(2024, 1, 5): 2, date(2024, 1, 8): 3})
+
     def test_pct_change(self):
         s = {date(2024, 1, 1): 100, date(2024, 2, 1): 110}
         self.assertAlmostEqual(etl.pct_change(s, 30), 10.0)

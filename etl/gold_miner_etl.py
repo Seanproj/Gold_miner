@@ -39,6 +39,7 @@ FRED_SERIES = {
     "DGS10": "10Y 국채금리",
     "DEXKOUS": "USD/KRW",
 }
+HIST_SERIES = ("DFII10", "DTWEXBGS", "T10YIE")
 FRED_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}"
 # Gold sources, tried in order.
 GOLD_SOURCES = [
@@ -193,6 +194,21 @@ def month_end(s: Series) -> Series:
     return out
 
 
+EPOCH = date(1970, 1, 1)
+
+
+def epoch_day(d: date) -> int:
+    return (d - EPOCH).days
+
+
+def week_end(s: Series) -> Series:
+    """Last observation of each ISO week (keeps the real observation date)."""
+    last: dict = {}
+    for d in sorted(s):
+        last[d.isocalendar()[:2]] = d
+    return {d: s[d] for d in last.values()}
+
+
 def change(s: Series, days: int) -> float | None:
     ds = sorted(s)
     if not ds:
@@ -288,6 +304,9 @@ def build_bundle(data: dict[str, Series], reports: list[QualityReport]) -> dict:
             "chg_1m": change(s, 30), "chg_1y": change(s, 365),
             "spark": [[d.isoformat(), round(v, 4)] for d, v in sorted(wk.items())][-60:],
         }
+        if sid in HIST_SERIES:  # weekly history for correlation and signal backtests
+            wkh = week_end({d: v for d, v in s.items() if d.year >= 2000})
+            out["macro"][sid]["hist"] = [[epoch_day(d), round(v, 4)] for d, v in sorted(wkh.items())]
     if gold:
         gd = sorted(gold)
         monthly = month_end(gold)
@@ -301,6 +320,8 @@ def build_bundle(data: dict[str, Series], reports: list[QualityReport]) -> dict:
             "monthly": [[d.strftime("%Y-%m"), round(v, 2)] for d, v in sorted(monthly.items())],
             "daily": [[d.isoformat(), round(v, 2)] for d, v in sorted(daily.items())],
             "krw_g": [[d.isoformat(), round(krw_per_gram(daily[d], fx_a[d]))] for d in sorted(fx_a)],
+            # full daily history: [epoch_day, close]
+            "hist": [[epoch_day(d), round(gold[d], 1)] for d in gd],
         }
         if fx:
             out["gold"]["krw_per_g_last"] = krw_per_gram(gold[gd[-1]], fx[sorted(fx)[-1]])
