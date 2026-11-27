@@ -16,4 +16,5 @@ node --test site/js/engine.test.js 2>&1 | grep -E "^# (pass|fail)"
 
 echo "== 4/4 standalone pages"
 python3 etl/build_standalone.py
-echo "done: site/dist/index.html, site/dist/analysis.html, site/data/brief.md"
+python3 etl/build_artifact.py
+echo "done: site/dist/*.html, site/artifact/*, site/data/brief.md"

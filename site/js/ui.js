@@ -5,7 +5,10 @@
   const root = document.documentElement;
   const get = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
   const set = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
-  root.dataset.theme = get("gm-theme", "dark");
+  const saved = get("gm-theme", "");
+  if (saved) root.dataset.theme = saved;
+  const mq = window.matchMedia ? matchMedia("(prefers-color-scheme: light)") : null;
+  const eff = () => root.dataset.theme || (mq && mq.matches ? "light" : "dark");
   root.dataset.updown = get("gm-updown", "kr");
   const subs = [];
   const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
@@ -13,7 +16,7 @@
 
   function sync() {
     const tb = document.getElementById("themeBtn"), ub = document.getElementById("udBtn");
-    if (tb) { tb.innerHTML = root.dataset.theme === "dark" ? MOON : SUN; tb.title = root.dataset.theme === "dark" ? "라이트 모드로" : "다크 모드로"; }
+    if (tb) { tb.innerHTML = eff() === "dark" ? MOON : SUN; tb.title = eff() === "dark" ? "라이트 모드로" : "다크 모드로"; }
     if (ub) {
       const kr = root.dataset.updown === "kr";
       ub.innerHTML = '<span style="color:var(--up)">▲</span><span style="color:var(--down)">▼</span><span class="lbl">' + (kr ? "한국식" : "글로벌") + "</span>";
@@ -27,7 +30,8 @@
     init(opts = {}) {
       sync();
       const tb = document.getElementById("themeBtn"), ub = document.getElementById("udBtn");
-      if (tb) tb.onclick = () => { root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark"; set("gm-theme", root.dataset.theme); fire(); };
+      if (tb) tb.onclick = () => { root.dataset.theme = eff() === "dark" ? "light" : "dark"; set("gm-theme", root.dataset.theme); fire(); };
+      if (mq && mq.addEventListener) mq.addEventListener("change", () => { if (!root.dataset.theme) fire(); });
       if (ub) ub.onclick = () => { root.dataset.updown = root.dataset.updown === "kr" ? "global" : "kr"; set("gm-updown", root.dataset.updown); fire(); };
       const fr = document.getElementById("fresh");
       if (fr && opts.asOf) fr.innerHTML = '<i></i><span>실데이터 · ' + opts.asOf + " 기준</span>";

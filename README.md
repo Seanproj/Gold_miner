@@ -2,6 +2,11 @@
 
 금 가격 측정과 과거 데이터 기반 미래 분석으로 금거래소의 매입·매도 판단을 돕는 대시보드입니다.
 
+## 링크
+**https://claude.ai/artifact/YAZwEiSzB8jXDzhcqwxHaC** — 메인 보드 + 상세 분석 (claude.ai 아티팩트, 기본 비공개 · 페이지의 Share 메뉴로 공유)
+
+평일 16:13 KST 예약 작업이 `scripts/update.sh` → `etl/build_artifact.py` → 같은 링크로 재게시 → 브랜치 커밋을 실행하고, 경고·주의 알림이 있으면 푸시로 알려줍니다.
+
 ## 바로 보기
 - `site/dist/index.html` — **메인 보드** (비전문가용: 싼가/비싼가, 과거 비슷한 때, 매수 계획, 매도 신호)
 - `site/dist/analysis.html` — **상세 분석** (가격·거시 분석, 시그널, 예측, 백테스트 랩, 거래 데스크, 데이터 품질)
@@ -20,6 +25,7 @@ GitHub Actions(`.github/workflows/daily-update.yml`)가 평일 06:40 KST에 같�
 python etl/gold_miner_etl.py        # 수집 → 품질 검사 → data/clean, site/data/gm_data.js 생성
 node etl/build_models.js            # Phase 4 모델(시그널 검증·가격 범위·국면) 사전 계산 → site/data/gm_models.js
 python etl/build_standalone.py      # site/dist/index.html, analysis.html 재생성
+python etl/build_artifact.py        # 아티팩트 게시용 파일 (site/artifact/)
 python -m unittest discover etl     # ETL 테스트
 node --test site/js/engine.test.js  # 백테스트 엔진 테스트 (미래 데이터 참조 방지 포함)
 ```

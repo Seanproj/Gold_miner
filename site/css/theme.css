@@ -8,9 +8,10 @@
   --glow:rgba(52,120,246,.22);
   /* temperature scale: cold (cheap) → hot (expensive); no good/bad meaning */
   --z0:#4C9DFF; --z1:#56C6E0; --z2:#A3AEC4; --z3:#F5A04A; --z4:#FF6A55;
+  color-scheme:dark;
   --font:"Pretendard Variable",Pretendard,Inter,"Noto Sans KR",system-ui,-apple-system,sans-serif;
 }
-:root[data-theme="light"]{
+:root[data-theme="light"]{color-scheme:light;
   --bg:#F4F6FA; --bg2:#EAEFF7; --surface:#FFFFFF; --surface2:#F7F9FC;
   --line:rgba(20,40,80,.08); --line2:rgba(20,40,80,.16);
   --text:#0E1626; --muted:#4A5770; --dim:#66738A;
@@ -18,11 +19,23 @@
   --glow:rgba(37,99,235,.12);
   --z0:#2F7FE6; --z1:#1FA3BD; --z2:#7C889D; --z3:#D9822B; --z4:#E04A35;
 }
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){color-scheme:light;
+  --bg:#F4F6FA; --bg2:#EAEFF7; --surface:#FFFFFF; --surface2:#F7F9FC;
+  --line:rgba(20,40,80,.08); --line2:rgba(20,40,80,.16);
+  --text:#0E1626; --muted:#4A5770; --dim:#66738A;
+  --primary:#2563EB; --cyan:#0B93A5; --violet:#7448E0; --gold:#B87D08;
+  --glow:rgba(37,99,235,.12);
+  --z0:#2F7FE6; --z1:#1FA3BD; --z2:#7C889D; --z3:#D9822B; --z4:#E04A35;
+}}
 /* up/down convention: Korean (red up / blue down) by default, global (green up / red down) optional */
 :root,:root[data-updown="kr"]{ --up:#FF4D5E; --down:#4A90FF; }
 :root[data-theme="light"],:root[data-theme="light"][data-updown="kr"]{ --up:#E02D3C; --down:#1F6FE5; }
 :root[data-updown="global"]{ --up:#12C99A; --down:#FF647C; }
 :root[data-theme="light"][data-updown="global"]{ --up:#0A9A76; --down:#E0435C; }
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]),:root:not([data-theme="dark"])[data-updown="kr"]{ --up:#E02D3C; --down:#1F6FE5; }
+  :root:not([data-theme="dark"])[data-updown="global"]{ --up:#0A9A76; --down:#E0435C; }
+}
 :root{ --pos:var(--up); --neg:var(--down); }
 
 *{box-sizing:border-box}
@@ -35,7 +48,7 @@ button{font:inherit;color:inherit}
 .pos{color:var(--pos)} .neg{color:var(--neg)}
 
 /* ---------- global header (same on every page) ---------- */
-.gh{position:sticky;top:0;z-index:30;backdrop-filter:saturate(1.4) blur(16px);-webkit-backdrop-filter:saturate(1.4) blur(16px);background:color-mix(in srgb,var(--bg) 78%,transparent);border-bottom:1px solid var(--line)}
+.gh{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;backdrop-filter:saturate(1.4) blur(16px);-webkit-backdrop-filter:saturate(1.4) blur(16px);background:color-mix(in srgb,var(--bg) 78%,transparent);border-bottom:1px solid var(--line)}
 .gh-in{max-width:1280px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;gap:20px}
 .gh-logo{display:flex;gap:10px;align-items:center;font-weight:800;font-size:18px;white-space:nowrap;letter-spacing:-.3px}
 .gh-logo i{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(140deg,#FFD47A,var(--gold) 45%,#C98200);font-style:normal;font-size:12.5px;font-weight:900;color:#2A1A00;box-shadow:0 6px 18px rgba(245,185,66,.28),inset 0 1px 0 rgba(255,255,255,.5)}

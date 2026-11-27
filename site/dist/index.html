@@ -20,9 +20,10 @@
   --glow:rgba(52,120,246,.22);
   /* temperature scale: cold (cheap) → hot (expensive); no good/bad meaning */
   --z0:#4C9DFF; --z1:#56C6E0; --z2:#A3AEC4; --z3:#F5A04A; --z4:#FF6A55;
+  color-scheme:dark;
   --font:"Pretendard Variable",Pretendard,Inter,"Noto Sans KR",system-ui,-apple-system,sans-serif;
 }
-:root[data-theme="light"]{
+:root[data-theme="light"]{color-scheme:light;
   --bg:#F4F6FA; --bg2:#EAEFF7; --surface:#FFFFFF; --surface2:#F7F9FC;
   --line:rgba(20,40,80,.08); --line2:rgba(20,40,80,.16);
   --text:#0E1626; --muted:#4A5770; --dim:#66738A;
@@ -30,11 +31,23 @@
   --glow:rgba(37,99,235,.12);
   --z0:#2F7FE6; --z1:#1FA3BD; --z2:#7C889D; --z3:#D9822B; --z4:#E04A35;
 }
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){color-scheme:light;
+  --bg:#F4F6FA; --bg2:#EAEFF7; --surface:#FFFFFF; --surface2:#F7F9FC;
+  --line:rgba(20,40,80,.08); --line2:rgba(20,40,80,.16);
+  --text:#0E1626; --muted:#4A5770; --dim:#66738A;
+  --primary:#2563EB; --cyan:#0B93A5; --violet:#7448E0; --gold:#B87D08;
+  --glow:rgba(37,99,235,.12);
+  --z0:#2F7FE6; --z1:#1FA3BD; --z2:#7C889D; --z3:#D9822B; --z4:#E04A35;
+}}
 /* up/down convention: Korean (red up / blue down) by default, global (green up / red down) optional */
 :root,:root[data-updown="kr"]{ --up:#FF4D5E; --down:#4A90FF; }
 :root[data-theme="light"],:root[data-theme="light"][data-updown="kr"]{ --up:#E02D3C; --down:#1F6FE5; }
 :root[data-updown="global"]{ --up:#12C99A; --down:#FF647C; }
 :root[data-theme="light"][data-updown="global"]{ --up:#0A9A76; --down:#E0435C; }
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]),:root:not([data-theme="dark"])[data-updown="kr"]{ --up:#E02D3C; --down:#1F6FE5; }
+  :root:not([data-theme="dark"])[data-updown="global"]{ --up:#0A9A76; --down:#E0435C; }
+}
 :root{ --pos:var(--up); --neg:var(--down); }
 
 *{box-sizing:border-box}
@@ -47,7 +60,7 @@ button{font:inherit;color:inherit}
 .pos{color:var(--pos)} .neg{color:var(--neg)}
 
 /* ---------- global header (same on every page) ---------- */
-.gh{position:sticky;top:0;z-index:30;backdrop-filter:saturate(1.4) blur(16px);-webkit-backdrop-filter:saturate(1.4) blur(16px);background:color-mix(in srgb,var(--bg) 78%,transparent);border-bottom:1px solid var(--line)}
+.gh{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;backdrop-filter:saturate(1.4) blur(16px);-webkit-backdrop-filter:saturate(1.4) blur(16px);background:color-mix(in srgb,var(--bg) 78%,transparent);border-bottom:1px solid var(--line)}
 .gh-in{max-width:1280px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;gap:20px}
 .gh-logo{display:flex;gap:10px;align-items:center;font-weight:800;font-size:18px;white-space:nowrap;letter-spacing:-.3px}
 .gh-logo i{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(140deg,#FFD47A,var(--gold) 45%,#C98200);font-style:normal;font-size:12.5px;font-weight:900;color:#2A1A00;box-shadow:0 6px 18px rgba(245,185,66,.28),inset 0 1px 0 rgba(255,255,255,.5)}
@@ -95,7 +108,10 @@ details.why b{color:var(--text)}
   const root = document.documentElement;
   const get = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
   const set = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
-  root.dataset.theme = get("gm-theme", "dark");
+  const saved = get("gm-theme", "");
+  if (saved) root.dataset.theme = saved;
+  const mq = window.matchMedia ? matchMedia("(prefers-color-scheme: light)") : null;
+  const eff = () => root.dataset.theme || (mq && mq.matches ? "light" : "dark");
   root.dataset.updown = get("gm-updown", "kr");
   const subs = [];
   const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
@@ -103,7 +119,7 @@ details.why b{color:var(--text)}
 
   function sync() {
     const tb = document.getElementById("themeBtn"), ub = document.getElementById("udBtn");
-    if (tb) { tb.innerHTML = root.dataset.theme === "dark" ? MOON : SUN; tb.title = root.dataset.theme === "dark" ? "라이트 모드로" : "다크 모드로"; }
+    if (tb) { tb.innerHTML = eff() === "dark" ? MOON : SUN; tb.title = eff() === "dark" ? "라이트 모드로" : "다크 모드로"; }
     if (ub) {
       const kr = root.dataset.updown === "kr";
       ub.innerHTML = '<span style="color:var(--up)">▲</span><span style="color:var(--down)">▼</span><span class="lbl">' + (kr ? "한국식" : "글로벌") + "</span>";
@@ -117,7 +133,8 @@ details.why b{color:var(--text)}
     init(opts = {}) {
       sync();
       const tb = document.getElementById("themeBtn"), ub = document.getElementById("udBtn");
-      if (tb) tb.onclick = () => { root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark"; set("gm-theme", root.dataset.theme); fire(); };
+      if (tb) tb.onclick = () => { root.dataset.theme = eff() === "dark" ? "light" : "dark"; set("gm-theme", root.dataset.theme); fire(); };
+      if (mq && mq.addEventListener) mq.addEventListener("change", () => { if (!root.dataset.theme) fire(); });
       if (ub) ub.onclick = () => { root.dataset.updown = root.dataset.updown === "kr" ? "global" : "kr"; set("gm-updown", root.dataset.updown); fire(); };
       const fr = document.getElementById("fresh");
       if (fr && opts.asOf) fr.innerHTML = '<i></i><span>실데이터 · ' + opts.asOf + " 기준</span>";
@@ -148,6 +165,7 @@ details.why b{color:var(--text)}
 body{font-size:16px;line-height:1.6}
 body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:radial-gradient(900px 480px at 82% -8%,rgba(52,120,246,.20),transparent 62%),radial-gradient(700px 380px at 0% 16%,rgba(245,185,66,.08),transparent 65%)}
 :root[data-theme="light"] body::before{opacity:.55}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) body::before{opacity:.55}}
 .wrap{max-width:1280px;margin:0 auto;padding:0 24px}
 
 /* ---------- bento hero ---------- */
