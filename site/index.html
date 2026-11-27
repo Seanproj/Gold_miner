@@ -93,7 +93,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .factor .n small{display:block;color:var(--dim);font-size:11.5px}
 .bar{height:8px;border-radius:4px;background:var(--bg2);position:relative;overflow:hidden}
 .bar i{position:absolute;top:0;bottom:0;border-radius:4px}
+
 .bar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line2)}
+.bar.prem::after{left:33.33%}
 .note{font-size:12.5px;color:var(--muted);border-left:2px solid var(--gold);padding:8px 12px;background:var(--goldsoft);border-radius:0 8px 8px 0}
 .kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
 .kv:last-child{border:0}
@@ -114,7 +116,7 @@ footer{margin-top:64px;border-top:1px solid var(--line);padding:28px 0 48px;colo
     <a class="brand" href="#top"><i></i>Gold<b>Miner</b></a>
     <nav class="links">
       <a href="#dash">대시보드</a><a href="#history">히스토리</a><a href="#backtest">백테스트</a>
-      <a href="#score">타이밍 스코어</a><a href="#alloc">자산배분</a><a href="#korea">한국 가이드</a>
+      <a href="#score">매입·매도 시그널</a><a href="#forecast">미래 분석</a><a href="#desk">거래 데스크</a>
     </nav>
     <button class="tbtn" id="themeBtn">☾ 다크</button>
   </div>
@@ -123,9 +125,9 @@ footer{margin-top:64px;border-top:1px solid var(--line);padding:28px 0 48px;colo
 <main class="wrap" id="top">
   <!-- HERO -->
   <section id="dash" style="padding-top:44px">
-    <div class="row" style="gap:8px"><span class="badge gold">● 디자인 시안 v0.1</span><span class="badge">샘플·근사 데이터 · 실데이터 연결 전</span></div>
-    <h1>금 투자, <em>타이밍의 질</em>을 높이는<br>개인 리서치 데스크</h1>
-    <p class="lead">금 애널리스트·자산배분 매니저·매크로 이코노미스트의 관점을 하나로. 가격을 맞히는 대신 국면을 읽고, 전략을 검증하고, 내 포트폴리오에서 금의 자리를 찾습니다.</p>
+    <div class="row" style="gap:8px"><span class="badge gold">● 디자인 시안 v0.2 · 거래소용</span><span class="badge">샘플·근사 데이터 · 실데이터 연결 전</span></div>
+    <h1>금거래소를 위한<br><em>매입·매도 타이밍</em> 인텔리전스</h1>
+    <p class="lead">가격을 정확히 측정하고, 과거 데이터로 검증된 근거 위에서 앞으로의 가격 범위를 추정합니다. 언제 재고를 늘리고 언제 줄일지 — 거래소의 매입·매도 의사결정을 돕는 리서치 데스크입니다.</p>
 
     <div class="grid g3" style="margin-top:30px">
       <div class="card">
@@ -136,16 +138,16 @@ footer{margin-top:64px;border-top:1px solid var(--line);padding:28px 0 48px;colo
         <div class="sub" style="margin-top:4px">최근 10년 연말 종가 추이 (근사치)</div>
       </div>
       <div class="card">
-        <div class="ct"><h3>원화 환산 · 국내 시세</h3><span class="pill">샘플</span></div>
-        <div class="kv"><span>원/g</span><b class="num" id="hKg">—</b></div>
-        <div class="kv"><span>원/돈 (3.75g)</span><b class="num" id="hDon">—</b></div>
-        <div class="kv"><span>USD/KRW</span><b class="num">1,400.00</b></div>
+        <div class="ct"><h3>거래소 고시가 · 원/돈 (3.75g)</h3><span class="pill">샘플</span></div>
+        <div class="kv"><span>기준가 (국제가 환산)</span><b class="num" id="hDon">—</b></div>
+        <div class="kv"><span>고객이 살 때</span><b class="num up" id="hBuy">—</b></div>
+        <div class="kv"><span>고객이 팔 때</span><b class="num down" id="hSell">—</b></div>
         <div class="kv"><span>KRX 국내 괴리율</span><b class="num" style="color:var(--gold)">+1.6% <small class="sub">정상 범위</small></b></div>
       </div>
       <div class="card" style="text-align:center">
-        <div class="ct"><h3>타이밍 스코어</h3><a class="pill" href="#score" style="text-decoration:none">요인 조정 →</a></div>
+        <div class="ct"><h3>매입·매도 시그널</h3><a class="pill" href="#score" style="text-decoration:none">요인 조정 →</a></div>
         <div id="gaugeTop"></div>
-        <div class="sub">−100 비중 축소 · 0 중립 · +100 매수 우위</div>
+        <div class="sub">−100 매도·재고 축소 · 0 중립 · +100 매입 우위</div>
       </div>
     </div>
 
@@ -179,18 +181,18 @@ footer{margin-top:64px;border-top:1px solid var(--line);padding:28px 0 48px;colo
   <!-- BACKTEST -->
   <section id="backtest">
     <div class="shead">
-      <div><div class="eyebrow">Backtest Lab</div><h2>전략 백테스트</h2><p class="lead">같은 금이라도 <b>언제, 어떻게</b> 샀는지에 따라 결과는 크게 달라집니다. 시작 연도와 전략을 바꿔보세요.</p></div>
+      <div><div class="eyebrow">Backtest Lab</div><h2>매입 타이밍 백테스트</h2><p class="lead">같은 물량이라도 <b>언제, 어떻게</b> 매입했는지에 따라 재고 가치는 크게 달라집니다. 시작 연도와 매입 방식을 바꿔 과거 성과를 검증하세요.</p></div>
     </div>
     <div class="card">
       <div class="row" style="gap:18px;margin-bottom:16px;align-items:flex-end">
         <label class="ctl">시작 연도<select id="btStart"></select></label>
-        <label class="ctl">투자금 (USD)<input type="number" id="btCap" value="10000" step="1000"></label>
+        <label class="ctl">매입 예산 (USD)<input type="number" id="btCap" value="10000" step="1000"></label>
         <div class="row" id="btStrats"></div>
       </div>
       <div class="grid g2">
         <div><div class="chart" id="btChart"></div><div class="legend" id="btLegend" style="margin-top:8px"></div></div>
         <div class="tscroll"><table id="btTable"></table>
-          <p class="note" style="margin-top:14px">추세추종 = 직전 연말가가 3년 평균보다 높으면 금 보유, 아니면 현금(연 2%). 연 단위 데이터라 MDD는 실제(일별)보다 작게 나옵니다. 정식 버전은 일별 데이터·거래비용·세금을 반영합니다.</p>
+          <p class="note" style="margin-top:14px">추세추종 = 직전 연말가가 3년 평균보다 높으면 보유, 아니면 현금(연 2%). 역발상 = 전년이 하락한 해에만 보유. 연 단위 데이터라 MDD는 실제(일별)보다 작게 나옵니다. 정식 버전은 일별 데이터·거래비용·세금을 반영합니다.</p>
         </div>
       </div>
     </div>
@@ -199,68 +201,66 @@ footer{margin-top:64px;border-top:1px solid var(--line);padding:28px 0 48px;colo
   <!-- SCORE -->
   <section id="score">
     <div class="shead">
-      <div><div class="eyebrow">Timing Score</div><h2>다요인 타이밍 스코어</h2><p class="lead">점 예측이 아닌 <b>국면 판단</b>. 각 요인을 −2(금에 불리) ~ +2(금에 유리)로 조정하면 가중합 스코어가 계산됩니다.</p></div>
+      <div><div class="eyebrow">Buy / Sell Signal</div><h2>다요인 매입·매도 시그널</h2><p class="lead">점 예측이 아닌 <b>국면 판단</b>. 각 요인을 −2(금에 불리) ~ +2(금에 유리)로 조정하면 가중합 스코어가 계산됩니다.</p></div>
     </div>
     <div class="grid g2">
       <div class="card"><div class="ct"><h3>요인별 입력 · 기여도</h3><span class="pill">가중치 합 100</span></div><div id="factors"></div></div>
       <div class="grid" style="align-content:start">
         <div class="card" style="text-align:center"><div class="ct"><h3>종합 스코어</h3><span class="pill" id="scoreLabel">—</span></div><div id="gaugeMain"></div></div>
-        <div class="card"><div class="ct"><h3>3개월 예측 구간 (팬차트)</h3><span class="pill">예시 화면</span></div><div class="chart" id="fan"></div>
-          <div class="legend" style="margin-top:6px"><span style="--c:var(--gold)">중앙값(50%)</span><span style="--c:color-mix(in srgb,var(--gold) 45%,transparent)">25–75%</span><span style="--c:color-mix(in srgb,var(--gold) 20%,transparent)">10–90%</span></div></div>
+        <div class="card"><div class="ct"><h3>거래소 액션 가이드</h3><span class="pill">시그널 연동</span></div><div id="actions"></div></div>
       </div>
     </div>
     <p class="note" style="margin-top:16px">전문가 노트 — 2022년 이후 실질금리가 급등했는데도 금은 상승했습니다. 중앙은행 매수가 실질금리 효과를 압도한 구간입니다. 그래서 단일 지표가 아니라 다요인 + 레짐 전환 모델을 씁니다.</p>
   </section>
 
-  <!-- ALLOC -->
-  <section id="alloc">
+  <!-- FORECAST -->
+  <section id="forecast">
     <div class="shead">
-      <div><div class="eyebrow">Asset Allocation</div><h2>내 포트폴리오의 금 비중</h2><p class="lead">나머지는 주식 60 : 채권 40(S&P500 TR · 미국 종합채권), 매년 리밸런싱. 2000–2025 연간 수익률 근사치 기준.</p></div>
+      <div><div class="eyebrow">Forward Analysis</div><h2>백데이터 기반 미래 분석</h2><p class="lead">과거 변동성과 수익률 분포로 앞으로 12개월의 <b>가격 범위</b>를 추정합니다. 한 점을 맞히는 대신 확률 구간으로 봅니다.</p></div>
+      <div class="row"><label class="ctl" style="flex-direction:row;align-items:center;gap:8px">기준가 USD/oz<input type="number" id="fBase" value="4250" step="10" style="width:110px"></label></div>
     </div>
     <div class="grid g2">
-      <div class="card">
-        <div class="row" style="justify-content:space-between"><h3 style="margin:0;font-size:14px;color:var(--muted)">금 비중</h3><b class="mid num" id="wLbl" style="color:var(--gold)">10%</b></div>
-        <input type="range" id="wGold" min="0" max="30" step="5" value="10" style="margin:14px 0 6px">
-        <div class="row" style="justify-content:space-between" ><span class="sub">0%</span><span class="sub">15%</span><span class="sub">30%</span></div>
-        <div class="chart" id="frontier" style="margin-top:14px"></div>
-        <div class="sub">위험(연 변동성) 대비 수익(CAGR) — 점 = 금 비중 0~30%</div>
+      <div class="card"><div class="ct"><h3>12개월 가격 시나리오 (팬차트)</h3><span class="pill" id="fParam">—</span></div>
+        <div class="chart" id="fanBig"></div>
+        <div class="legend" style="margin-top:8px"><span style="--c:var(--gold)">중앙값</span><span style="--c:color-mix(in srgb,var(--gold) 50%,transparent)">25–75%</span><span style="--c:color-mix(in srgb,var(--gold) 22%,transparent)">10–90%</span></div></div>
+      <div class="card tscroll"><div class="ct"><h3>시나리오별 예상 가격</h3><span class="pill">USD/oz</span></div><table id="fTable"></table>
+        <p class="note" style="margin-top:14px">변동성은 2000–2025 연간 수익률에서, 기대 수익률은 장기 평균에 시그널 점수(±4%p)를 더해 계산합니다. 정식 버전은 일별 데이터와 분위수 회귀·레짐 모델을 쓰고, 예측이 실제로 얼마나 맞았는지도 함께 공개합니다.</p></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="shead" style="margin-bottom:10px"><div><h3 style="margin:0;font-size:16px">과거 유사 국면 분석</h3><p class="sub" style="margin:4px 0 0">"올해가 이 정도 올랐다(내렸다)면, 과거엔 다음 해에 어땠나?"</p></div>
+        <div class="seg" id="condSeg"><button data-c="0">−10% 미만</button><button data-c="1">−10~0%</button><button data-c="2">0~15%</button><button data-c="3" class="on">15~30%</button><button data-c="4">30% 이상</button></div></div>
+      <div class="grid g2">
+        <div><div class="chart" id="condChart"></div><div class="legend" style="margin-top:6px"><span style="--c:var(--gold)">조건 충족 다음 해</span><span style="--c:var(--line2)">기타 연도</span></div></div>
+        <div id="condStats"></div>
       </div>
-      <div class="card"><div class="ct"><h3>금 0% vs 선택 비중</h3></div><div class="tscroll"><table id="allocTable"></table></div></div>
     </div>
   </section>
 
-  <!-- KOREA -->
-  <section id="korea">
+  <!-- DESK -->
+  <section id="desk">
     <div class="shead">
-      <div><div class="eyebrow">For Korean Investors</div><h2>한국 투자자 가이드</h2><p class="lead">같은 금이라도 투자 수단에 따라 세금과 비용이 크게 다릅니다.</p></div>
+      <div><div class="eyebrow">Trading Desk</div><h2>거래 데스크 — 고시가 · 국내 프리미엄</h2><p class="lead">국제가·환율에서 기준가를 산출하고, 매입·매도 마진과 국내 괴리율을 한 화면에서 관리합니다.</p></div>
     </div>
     <div class="grid g2">
-      <div class="card tscroll">
-        <table>
-          <tr><th>투자 수단</th><th>매매차익 과세</th><th>부가세</th><th>비용 수준</th></tr>
-          <tr><td><b>KRX 금현물</b></td><td class="up">비과세</td><td>면제 (실물 인출 시 10%)</td><td>낮음</td></tr>
-          <tr><td>금통장 (골드뱅킹)</td><td>배당소득 15.4%</td><td>—</td><td>스프레드 ≈1%</td></tr>
-          <tr><td>국내 금 ETF</td><td>배당소득 15.4%</td><td>—</td><td>보수 낮음</td></tr>
-          <tr><td>해외 금 ETF (GLD 등)</td><td>양도세 22% (250만원 공제)</td><td>—</td><td>환전비용</td></tr>
-          <tr><td>실물 골드바</td><td class="up">비과세</td><td class="down">구입 시 10%</td><td>높음 (+판매 수수료)</td></tr>
-        </table>
-        <p class="sub" style="margin-top:10px">※ 세법은 수시로 바뀝니다. 정식 버전에서는 기준일과 출처를 함께 표기합니다.</p>
-      </div>
       <div class="card">
-        <div class="ct"><h3>원화 금 가격 계산기</h3></div>
+        <div class="ct"><h3>고시가 계산기</h3><span class="pill">원/g = USD/oz × USD/KRW ÷ 31.1035</span></div>
         <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px">
           <label class="ctl">USD/oz<input type="number" id="kUsd" value="4250" step="10"></label>
           <label class="ctl">USD/KRW<input type="number" id="kFx" value="1400" step="5"></label>
-          <label class="ctl">국내 괴리율 %<input type="number" id="kPrem" value="1.6" step="0.1"></label>
-          <label class="ctl">보유 수량 (돈)<input type="number" id="kQty" value="10" step="1"></label>
+          <label class="ctl">고객 매수 마진 %<input type="number" id="kAsk" value="5" step="0.1"></label>
+          <label class="ctl">고객 매도 차감 %<input type="number" id="kBid" value="5" step="0.1"></label>
         </div>
-        <div style="margin-top:14px">
-          <div class="kv"><span>국제가 환산 원/g</span><b class="num" id="kG">—</b></div>
-          <div class="kv"><span>국내가 원/돈</span><b class="num" id="kD">—</b></div>
-          <div class="kv"><span>국내가 원/kg</span><b class="num" id="kKg">—</b></div>
-          <div class="kv"><span>보유 평가액</span><b class="num" id="kV" style="color:var(--gold)">—</b></div>
-        </div>
-        <p class="sub" style="margin:8px 0 0">원/g = USD/oz × USD/KRW ÷ 31.1035</p>
+        <div class="tscroll" style="margin-top:14px"><table>
+          <tr><th>단위</th><th>기준가</th><th>고객이 살 때</th><th>고객이 팔 때</th></tr>
+          <tbody id="kRows"></tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="ct"><h3>국내 프리미엄(괴리율) 모니터</h3><span class="pill">샘플</span></div>
+        <label class="ctl">KRX 금 시세 (원/g)<input type="number" id="kKrx" value="194500" step="100"></label>
+        <div style="margin:18px 0 8px" class="row"><span class="big num" id="kPrem">—</span><span class="pill" id="kPremLbl">—</span></div>
+        <div class="bar prem" style="height:10px"><i id="kPremBar" style="left:0"></i></div>
+        <div class="row" style="justify-content:space-between;margin-top:6px"><span class="sub">−5%</span><span class="sub">0</span><span class="sub">+5%</span><span class="sub">+10%↑</span></div>
+        <p class="note" style="margin-top:14px">괴리율이 크게 벌어지면 국내 가격이 국제가보다 비싸게 거래된다는 뜻입니다. 이때는 국내 매입을 자제하고 매도 쪽을 유리하게 볼 수 있습니다. 2025년 초처럼 프리미엄이 급등했다가 빠르게 정상화된 사례도 함께 추적합니다.</p>
       </div>
     </div>
   </section>
@@ -272,8 +272,8 @@ footer{margin-top:64px;border-top:1px solid var(--line);padding:28px 0 48px;colo
       <div class="step now"><b>NOW · 시안</b>디자인 시안 + 근사 데이터 인터랙션</div>
       <div class="step"><b>PHASE 1</b>데이터 파이프라인 (LBMA·FRED·ECOS·KRX)</div>
       <div class="step"><b>PHASE 2–3</b>대시보드 + 일별 백테스트 엔진</div>
-      <div class="step"><b>PHASE 4</b>스코어 검증 · 분위수 예측 · 레짐</div>
-      <div class="step"><b>PHASE 5</b>자산배분 최적화 · 알림 · 브리핑</div>
+      <div class="step"><b>PHASE 4</b>시그널 검증 · 분위수 예측 · 레짐</div>
+      <div class="step"><b>PHASE 5</b>거래 데스크 · 프리미엄 경고 · 알림 · 브리핑</div>
     </div>
   </section>
 </main>
@@ -283,8 +283,6 @@ footer{margin-top:64px;border-top:1px solid var(--line);padding:28px 0 48px;colo
 // ---------- data (approximate, educational) ----------
 const Y0=1999;
 const GOLD=[290,274,279,343,417,438,513,632,834,870,1104,1406,1531,1658,1202,1199,1060,1146,1303,1279,1517,1888,1806,1812,2062,2610,4300]; // year-end USD/oz, approx
-const SPX=[-9.1,-11.9,-22.1,28.7,10.9,4.9,15.8,5.5,-37.0,26.5,15.1,2.1,16.0,32.4,13.7,1.4,12.0,21.8,-4.4,31.5,18.4,28.7,-18.1,26.3,25.0,17.9]; // 2000.. total return %
-const AGG=[11.6,8.4,10.3,4.1,4.3,2.4,4.3,7.0,5.2,5.9,6.5,7.8,4.2,-2.0,6.0,0.5,2.6,3.5,0.0,8.7,7.5,-1.5,-13.0,5.5,1.3,7.3];
 const YEARS=GOLD.map((_,i)=>Y0+i);
 const GR=GOLD.slice(1).map((p,i)=>(p/GOLD[i]-1)*100); // 2000..
 const EVENTS=[[2008,"글로벌 금융위기"],[2011,"2011 고점 · 유럽 재정위기"],[2013,"테이퍼 텐트럼 −28%"],[2020,"코로나 · 무제한 QE"],[2022,"중앙은행 매수 가속"]];
@@ -382,10 +380,10 @@ document.querySelectorAll("#scaleSeg button").forEach(b=>b.onclick=()=>{document
 
 // ---------- backtest ----------
 const STRATS=[
-  {id:"lump",name:"일시매수",color:"--gold",on:true},
-  {id:"dca",name:"연 적립식",color:"--blue",on:true},
+  {id:"lump",name:"일시 매입",color:"--gold",on:true},
+  {id:"dca",name:"분할 매입 (연 1회)",color:"--blue",on:true},
   {id:"trend",name:"3년 추세추종",color:"--violet",on:true},
-  {id:"spx",name:"S&P500 (비교)",color:"--muted",on:false,dash:"5 4"},
+  {id:"contra",name:"역발상 (하락 후 보유)",color:"--muted",on:false,dash:"5 4"},
 ];
 for(let y=2000;y<=2020;y++)$("#btStart").add(new Option(y,y,false,y===2005));
 STRATS.forEach(s=>{const l=document.createElement("label");l.className="chk";l.innerHTML=`<input type="checkbox" ${s.on?"checked":""}><span class="dot" style="--c:var(${s.color})"></span>${s.name}`;l.querySelector("input").onchange=e=>{s.on=e.target.checked;renderBT()};$("#btStrats").appendChild(l)});
@@ -394,7 +392,7 @@ function simulate(id,s,cap){
   for(let y=s;y<=2025;y++){
     const i=y-Y0;const gr=GOLD[i]/GOLD[i-1]-1;
     if(id==="lump")v*=1+gr;
-    else if(id==="spx")v*=1+SPX[y-2000]/100;
+    else if(id==="contra")v*=(i>=2&&GOLD[i-1]<GOLD[i-2])?1+gr:1.02;
     else if(id==="trend"){const ma=i>=3?(GOLD[i-1]+GOLD[i-2]+GOLD[i-3])/3:0;v*=GOLD[i-1]>=ma?1+gr:1.02}
     else if(id==="dca"){units+=(cap/n)/GOLD[i-1];cash-=cap/n;v=units*GOLD[i]+cash}
     out.push([y,v]);
@@ -443,67 +441,92 @@ function renderFactors(){
 }
 function renderScore(){
   const s=scoreNow();gauge($("#gaugeTop"),s,220);gauge($("#gaugeMain"),s,260);
-  const lbl=s>=40?"매수 우위":s>=10?"완만한 우호":s>-10?"중립":s>-40?"신중":"비중 축소 고려";
+  const lbl=s>=40?"매입 우위":s>=10?"완만한 매입":s>-10?"중립":s>-40?"매도 우위":"재고 축소";
   $("#scoreLabel").textContent=lbl;$("#scoreLabel").style.color=s>=10?css("--up"):s<=-10?css("--down"):css("--muted");
-  renderFan(s);
+  renderActions(s);renderForecast();
 }
-function renderFan(s){
-  const host=$("#fan");host.innerHTML="";const W=host.clientWidth||400,H=170,p={l:40,r:12,t:12,b:22};
-  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,height:H},host);
-  const drift=s/100*0.04;const months=[0,1,2,3];
-  const q=(z,m)=>100*(1+drift*m/3+z*0.05*Math.sqrt(m));
-  const lo=q(-1.4,3),hi=q(1.4,3);const X=m=>p.l+m/3*(W-p.l-p.r),Y=v=>H-p.b-(v-lo+2)/(hi-lo+4)*(H-p.t-p.b);
-  const band=(za,zb,op)=>{const top=months.map(m=>[X(m),Y(q(zb,m))]),bot=months.map(m=>[X(m),Y(q(za,m))]).reverse();
-    el("path",{d:"M"+top.concat(bot).map(a=>a.join(",")).join("L")+"Z",fill:css("--gold"),"fill-opacity":op},svg)};
-  [[100,"100"]].forEach(([v])=>{el("line",{x1:p.l,x2:W-p.r,y1:Y(v),y2:Y(v),stroke:css("--line2"),"stroke-dasharray":"3 3"},svg)});
-  band(-1.28,1.28,.14);band(-.67,.67,.25);
-  el("path",{d:"M"+months.map(m=>[X(m),Y(q(0,m))].join(",")).join("L"),stroke:css("--gold"),"stroke-width":2.2,fill:"none"},svg);
-  ["오늘","1M","2M","3M"].forEach((t,m)=>{const tx=el("text",{x:X(m),y:H-5,"text-anchor":"middle","font-size":11,fill:css("--dim")},svg);tx.textContent=t});
-  [["90%",1.28],["50%",0],["10%",-1.28]].forEach(([t,z])=>{const tx=el("text",{x:W-p.r,y:Y(q(z,3))-5,"text-anchor":"end","font-size":11,fill:css("--muted")},svg);tx.textContent=`${t} ${pct(q(z,3)-100,1)}`});
-  const tx=el("text",{x:p.l-6,y:Y(100)+4,"text-anchor":"end","font-size":11,fill:css("--dim")},svg);tx.textContent="100";
+function renderActions(s){
+  const A=s>=40?[["재고","적극 확대 — 분할 매입 속도 상향"],["매입 스프레드","축소해 고객 매도 물량 흡수"],["헤지","선물 매도 헤지 비율 낮춤"]]
+   :s>=10?[["재고","완만한 확대"],["매입 스프레드","기본 유지"],["헤지","기본 비율 유지"]]
+   :s>-10?[["재고","목표 수준 유지"],["매입·매도","양방향 정상 운영"],["헤지","기본 비율 유지"]]
+   :s>-40?[["재고","완만한 축소 — 분할 매도"],["매도 스프레드","축소해 고객 매수 수요 흡수"],["헤지","헤지 비율 상향"]]
+   :[["재고","적극 축소"],["신규 매입","보수적 — 매입 단가 하향"],["헤지","헤지 비율 최대"]];
+  $("#actions").innerHTML=A.map(a=>`<div class="kv"><span>${a[0]}</span><b style="font-weight:500">${a[1]}</b></div>`).join("")+`<p class="sub" style="margin:10px 0 0">시그널은 참고 지표입니다. 실제 운영에는 리스크 한도와 내부 규정을 적용하세요.</p>`;
 }
 
-// ---------- allocation ----------
-function portfolio(w){
-  const r=SPX.map((_,i)=>w*GR[i]+(1-w)*(0.6*SPX[i]+0.4*AGG[i]));
-  const curve=[[1999,1]];r.forEach((x,i)=>curve.push([2000+i,curve.at(-1)[1]*(1+x/100)]));
-  return {r,...stats(curve)};
-}
-function renderAlloc(){
-  const w=+$("#wGold").value/100;$("#wLbl").textContent=Math.round(w*100)+"%";
-  const pts=[0,.05,.1,.15,.2,.25,.3].map(x=>({w:x,...portfolio(x)}));
-  const host=$("#frontier");host.innerHTML="";const W=host.clientWidth||500,H=220,p={l:46,r:16,t:14,b:30};
+// ---------- forecast ----------
+const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+const SIG=Math.sqrt(mean(GR.map(r=>(r/100-mean(GR)/100)**2)));
+const MU=Math.log(GOLD.at(-1)/GOLD[0])/(GOLD.length-1);
+function q(P,mu,z,m){const t=m/12;return P*Math.exp((mu-SIG*SIG/2)*t+z*SIG*Math.sqrt(t))}
+function renderForecast(){
+  const P=+$("#fBase").value||4250,mu=MU+scoreNow()/100*0.04;
+  $("#fParam").textContent=`σ ${(SIG*100).toFixed(1)}% · μ ${(mu*100).toFixed(1)}%`;
+  const host=$("#fanBig");host.innerHTML="";const W=host.clientWidth||600,H=300,p={l:60,r:70,t:14,b:26};
   const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,height:H},host);
-  const vx=pts.map(a=>a.vol),cy=pts.map(a=>a.cagr);const x0=Math.min(...vx)-.6,x1=Math.max(...vx)+.6,y0=Math.min(...cy)-.4,y1=Math.max(...cy)+.4;
-  const X=v=>p.l+(v-x0)/(x1-x0)*(W-p.l-p.r),Y=v=>H-p.b-(v-y0)/(y1-y0)*(H-p.t-p.b);
-  for(let t=Math.ceil(y0*2)/2;t<=y1;t+=.5){el("line",{x1:p.l,x2:W-p.r,y1:Y(t),y2:Y(t),stroke:css("--line")},svg);const tx=el("text",{x:p.l-8,y:Y(t)+4,"text-anchor":"end","font-size":11,fill:css("--dim")},svg);tx.textContent=t.toFixed(1)+"%"}
-  for(let t=Math.ceil(x0);t<=x1;t++){const tx=el("text",{x:X(t),y:H-10,"text-anchor":"middle","font-size":11,fill:css("--dim")},svg);tx.textContent=t+"%"}
-  el("path",{d:"M"+pts.map(a=>[X(a.vol),Y(a.cagr)].join(",")).join("L"),stroke:css("--line2"),"stroke-width":2,fill:"none"},svg);
-  pts.forEach(a=>{const sel=Math.abs(a.w-w)<1e-9;el("circle",{cx:X(a.vol),cy:Y(a.cagr),r:sel?8:5,fill:sel?css("--gold"):css("--card"),stroke:css("--gold"),"stroke-width":2},svg);
-    const tx=el("text",{x:X(a.vol),y:Y(a.cagr)-12,"text-anchor":"middle","font-size":11,fill:sel?css("--gold"):css("--muted")},svg);tx.textContent=Math.round(a.w*100)+"%"});
-  const a=portfolio(0),b=portfolio(w);const yr=y=>y-2000;
-  const row=(k,va,vb,better,f=v=>v.toFixed(1)+"%")=>`<tr><td>${k}</td><td class="num">${f(va)}</td><td class="num" style="color:${better===null?"inherit":better?css("--up"):css("--down")}">${f(vb)}</td></tr>`;
-  $("#allocTable").innerHTML=`<tr><th>지표</th><th>금 0%</th><th>금 ${Math.round(w*100)}%</th></tr>`+
-    row("CAGR",a.cagr,b.cagr,b.cagr>=a.cagr)+row("연 변동성",a.vol,b.vol,b.vol<=a.vol)+row("샤프",a.sharpe,b.sharpe,b.sharpe>=a.sharpe,v=>v.toFixed(2))+
-    row("최악의 해",a.worst,b.worst,b.worst>=a.worst)+row("2008 수익률",a.r[yr(2008)],b.r[yr(2008)],b.r[yr(2008)]>=a.r[yr(2008)])+
-    row("2022 수익률",a.r[yr(2022)],b.r[yr(2022)],b.r[yr(2022)]>=a.r[yr(2022)])+row("2000–25 최종(1→)",a.final,b.final,b.final>=a.final,v=>v.toFixed(2)+"배");
+  const M=[...Array(13).keys()];const lo=q(P,mu,-1.5,12),hi=q(P,mu,1.5,12);
+  const X=m=>p.l+m/12*(W-p.l-p.r),Y=v=>H-p.b-(v-lo)/(hi-lo)*(H-p.t-p.b);
+  const step=niceStep((hi-lo)/5);for(let t=Math.ceil(lo/step)*step;t<=hi;t+=step){el("line",{x1:p.l,x2:W-p.r,y1:Y(t),y2:Y(t),stroke:css("--line")},svg);const tx=el("text",{x:p.l-8,y:Y(t)+4,"text-anchor":"end","font-size":11,fill:css("--dim")},svg);tx.textContent="$"+fmt(t)}
+  const band=(z,op)=>{const top=M.map(m=>[X(m),Y(q(P,mu,z,m))]),bot=M.map(m=>[X(m),Y(q(P,mu,-z,m))]).reverse();el("path",{d:"M"+top.concat(bot).map(a=>a.join(",")).join("L")+"Z",fill:css("--gold"),"fill-opacity":op},svg)};
+  band(1.2816,.13);band(.6745,.24);
+  el("line",{x1:p.l,x2:W-p.r,y1:Y(P),y2:Y(P),stroke:css("--line2"),"stroke-dasharray":"3 4"},svg);
+  el("path",{d:"M"+M.map(m=>[X(m),Y(q(P,mu,0,m))].join(",")).join("L"),stroke:css("--gold"),"stroke-width":2.4,fill:"none"},svg);
+  [0,3,6,9,12].forEach(m=>{const tx=el("text",{x:X(m),y:H-6,"text-anchor":"middle","font-size":11,fill:css("--dim")},svg);tx.textContent=m?m+"M":"현재"});
+  [["90%",1.2816],["50%",0],["10%",-1.2816]].forEach(([t,z])=>{const tx=el("text",{x:W-p.r+6,y:Y(q(P,mu,z,12))+4,"font-size":11,fill:css("--muted")},svg);tx.textContent=t+" $"+fmt(q(P,mu,z,12))});
+  const rows=[["비관 (10%)",-1.2816,"down"],["보수 (25%)",-.6745,""],["기준 (50%)",0,""],["낙관 (75%)",.6745,""],["강세 (90%)",1.2816,"up"]];
+  $("#fTable").innerHTML=`<tr><th>시나리오</th><th>3개월</th><th>6개월</th><th>12개월</th></tr>`+rows.map(([n,z,c])=>`<tr><td>${n}</td>${[3,6,12].map(m=>{const v=q(P,mu,z,m);return `<td class="num"><b>$${fmt(v)}</b><br><small class="${v>=P?"up":"down"}">${pct((v/P-1)*100)}</small></td>`}).join("")}</tr>`).join("")+
+   `<tr><td>12개월 상승 확률</td><td colspan="3" class="num" style="color:var(--gold);font-weight:600">${(100*normCdf((mu-SIG*SIG/2)/SIG)).toFixed(0)}%</td></tr>`;
 }
-$("#wGold").oninput=renderAlloc;
+function normCdf(x){const t=1/(1+.2316419*Math.abs(x)),d=.3989423*Math.exp(-x*x/2),p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return x>0?1-p:p}
+$("#fBase").oninput=renderForecast;
 
-// ---------- korea ----------
+// ---------- conditional (similar regime) ----------
+const BUCKETS=[[-1e9,-10],[-10,0],[0,15],[15,30],[30,1e9]];let cond=3;
+function renderCond(){
+  const [a,b]=BUCKETS[cond];const hits=[];
+  for(let i=1;i<GR.length;i++)if(GR[i-1]>=a&&GR[i-1]<b)hits.push(i);
+  const host=$("#condChart");host.innerHTML="";const W=host.clientWidth||600,H=230,p={l:40,r:8,t:10,b:24};
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,height:H},host);
+  const mx=Math.max(...GR.map(Math.abs));const bw=(W-p.l-p.r)/GR.length;const Y=v=>p.t+(1-(v+mx)/(2*mx))*(H-p.t-p.b);
+  [-40,-20,0,20,40].forEach(t=>{if(Math.abs(t)>mx)return;el("line",{x1:p.l,x2:W-p.r,y1:Y(t),y2:Y(t),stroke:t?css("--line"):css("--line2")},svg);const tx=el("text",{x:p.l-6,y:Y(t)+4,"text-anchor":"end","font-size":10.5,fill:css("--dim")},svg);tx.textContent=t+"%"});
+  GR.forEach((r,i)=>{const hit=hits.includes(i);const x=p.l+i*bw+bw*.15;
+    const rc=el("rect",{x,width:bw*.7,y:Math.min(Y(r),Y(0)),height:Math.abs(Y(r)-Y(0)),rx:2,fill:hit?(r>=0?css("--gold"):css("--down")):css("--line2")},svg);
+    const ti=el("title",{},rc);ti.textContent=`${2000+i}: ${pct(r)}`;
+    if(i%5===0){const tx=el("text",{x:x+bw*.35,y:H-6,"text-anchor":"middle","font-size":10.5,fill:css("--dim")},svg);tx.textContent=2000+i}});
+  const nx=hits.map(i=>GR[i]);
+  if(!nx.length){$("#condStats").innerHTML=`<p class="sub">해당 조건의 과거 사례가 없습니다.</p>`;return}
+  const srt=[...nx].sort((x,y)=>x-y),med=srt.length%2?srt[(srt.length-1)/2]:(srt[srt.length/2-1]+srt[srt.length/2])/2;
+  const win=nx.filter(x=>x>0).length/nx.length*100;
+  $("#condStats").innerHTML=`<div class="kv"><span>과거 사례 수</span><b class="num">${nx.length}회</b></div>
+   <div class="kv"><span>다음 해 평균 수익률</span><b class="num ${mean(nx)>=0?"up":"down"}">${pct(mean(nx))}</b></div>
+   <div class="kv"><span>다음 해 중앙값</span><b class="num">${pct(med)}</b></div>
+   <div class="kv"><span>상승 확률</span><b class="num" style="color:var(--gold)">${win.toFixed(0)}%</b></div>
+   <div class="kv"><span>최선 / 최악</span><b class="num"><span class="up">${pct(Math.max(...nx))}</span> / <span class="down">${pct(Math.min(...nx))}</span></b></div>
+   <p class="sub" style="margin:10px 0 0">해당 연도: ${hits.map(i=>2000+i).join(", ")}<br>표본이 작습니다. 정식 버전은 일·월 단위 데이터와 매크로 조건(실질금리·달러)을 함께 걸어 유사 국면을 찾습니다.</p>`;
+}
+document.querySelectorAll("#condSeg button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#condSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");cond=+b.dataset.c;renderCond()});
+
+// ---------- desk ----------
 function renderKR(){
-  const usd=+$("#kUsd").value,fx=+$("#kFx").value,pr=+$("#kPrem").value/100,q=+$("#kQty").value;
-  const g=usd*fx/31.1035,dom=g*(1+pr);
-  $("#kG").textContent=fmt(g)+"원";$("#kD").textContent=fmt(dom*3.75)+"원";$("#kKg").textContent=fmt(dom*1000/1e4)+"만원";$("#kV").textContent=fmt(dom*3.75*q)+"원";
-  $("#hKg").textContent=fmt(g)+"원";$("#hDon").textContent=fmt(dom*3.75)+"원";
+  const usd=+$("#kUsd").value,fx=+$("#kFx").value,ask=+$("#kAsk").value/100,bid=+$("#kBid").value/100;
+  const g=usd*fx/31.1035;
+  const U=[["1g",1],["1돈 (3.75g)",3.75],["10돈",37.5],["100g 바",100],["1kg 바",1000]];
+  $("#kRows").innerHTML=U.map(([n,w])=>`<tr><td>${n}</td><td class="num">${fmt(g*w)}</td><td class="num up">${fmt(g*w*(1+ask))}</td><td class="num down">${fmt(g*w*(1-bid))}</td></tr>`).join("");
+  $("#hDon").textContent=fmt(g*3.75)+"원";$("#hBuy").textContent=fmt(g*3.75*(1+ask))+"원";$("#hSell").textContent=fmt(g*3.75*(1-bid))+"원";
+  const prem=(+$("#kKrx").value/g-1)*100;
+  $("#kPrem").textContent=pct(prem,2);
+  const st=prem>5?["경고 · 국내 고평가",css("--down")]:prem>2?["주의",css("--gold")]:prem<-2?["국내 저평가 · 매입 기회",css("--up")]:["정상 범위",css("--muted")];
+  $("#kPremLbl").textContent=st[0];$("#kPremLbl").style.color=st[1];$("#kPrem").style.color=st[1];
+  const pos=Math.max(0,Math.min(100,(prem+5)/15*100)),zero=100/3;
+  const bar=$("#kPremBar");bar.style.left=Math.min(pos,zero)+"%";bar.style.width=Math.abs(pos-zero)+"%";bar.style.background=st[1];
 }
-["kUsd","kFx","kPrem","kQty"].forEach(id=>$("#"+id).oninput=renderKR);
+["kUsd","kFx","kAsk","kBid","kKrx"].forEach(id=>$("#"+id).oninput=renderKR);
 
 // ---------- theme ----------
 function setTheme(t){document.documentElement.dataset.theme=t;$("#themeBtn").textContent=t==="dark"?"☾ 다크":"☀ 라이트";try{localStorage.setItem("gm-theme",t)}catch(e){}renderAll()}
 $("#themeBtn").onclick=()=>setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");
 
-function renderAll(){renderHero();renderHist();renderBT();renderFactors();renderScore();renderAlloc();renderKR()}
+function renderAll(){renderHero();renderHist();renderBT();renderFactors();renderScore();renderCond();renderKR()}
 let saved="dark";try{saved=localStorage.getItem("gm-theme")||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark")}catch(e){}
 document.documentElement.dataset.theme=saved;$("#themeBtn").textContent=saved==="dark"?"☾ 다크":"☀ 라이트";
 renderAll();
