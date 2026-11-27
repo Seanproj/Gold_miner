@@ -156,3 +156,24 @@ test("range model: ordered quantiles, λ ≥ 1, today's range ignores nothing bu
   for (let k = 1; k < r.now.q.length; k++) assert.ok(r.now.q[k] >= r.now.q[k - 1]);
   assert.ok(r.eval.model.c80 >= 0 && r.eval.model.c80 <= 1);
 });
+
+test("alerts: premium thresholds and ordering", () => {
+  const g = makeGold(1300);
+  const a = E.alerts(g, { premium: 6 });
+  assert.equal(a.find((x) => x.id === "premium").level, "critical");
+  assert.equal(E.alerts(g, { premium: 3 }).find((x) => x.id === "premium").level, "warn");
+  assert.equal(E.alerts(g, { premium: 0.5 }).find((x) => x.id === "premium"), undefined);
+  const lv = a.map((x) => x.level), rank = { critical: 0, warn: 1, info: 2 };
+  for (let k = 1; k < lv.length; k++) assert.ok(rank[lv[k]] >= rank[lv[k - 1]]);
+});
+
+test("alerts: a large last-day move is flagged", () => {
+  const g = makeGold(400); g.p[g.p.length - 1] = g.p[g.p.length - 2] * 1.08;
+  assert.ok(E.alerts(g).some((x) => x.id === "move"));
+});
+
+test("verdict covers every zone pair", () => {
+  for (const a of [5, 30, 50, 70, 95]) for (const b of [5, 30, 50, 70, 95]) {
+    const v = E.verdict(a, b); assert.ok(v.title && E.PLANS[v.plan]);
+  }
+});

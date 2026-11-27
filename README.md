@@ -8,7 +8,14 @@
 - 두 파일은 데이터가 내장된 단일 파일이며 같은 폴더에 두면 서로 링크됩니다.
 - 개발용 원본: `site/index.html`, `site/analysis.html` (`site/data/gm_data.js`, `site/js/engine.js`를 읽음)
 
-## 데이터 갱신 (Phase 1 ETL)
+## 데이터 갱신
+매일 한 번이면 충분합니다. 아래 한 줄이 수집 → 모델·알림·브리핑 → 테스트 → 페이지 빌드를 모두 실행합니다.
+```bash
+bash scripts/update.sh
+```
+GitHub Actions(`.github/workflows/daily-update.yml`)가 평일 06:40 KST에 같은 작업을 돌리고 결과를 커밋합니다(기본 브랜치에 병합된 뒤부터 동작).
+
+단계별 실행:
 ```bash
 python etl/gold_miner_etl.py        # 수집 → 품질 검사 → data/clean, site/data/gm_data.js 생성
 node etl/build_models.js            # Phase 4 모델(시그널 검증·가격 범위·국면) 사전 계산 → site/data/gm_models.js
@@ -16,7 +23,7 @@ python etl/build_standalone.py      # site/dist/index.html, analysis.html 재생
 python -m unittest discover etl     # ETL 테스트
 node --test site/js/engine.test.js  # 백테스트 엔진 테스트 (미래 데이터 참조 방지 포함)
 ```
-표준 라이브러리만 사용합니다(Python 3.9+). 네트워크 허용 필요 호스트: `fred.stlouisfed.org`, `query1.finance.yahoo.com` (`stooq.com`은 예비).
+표준 라이브러리만 사용합니다(Python 3.9+, Node 18+). 네트워크 허용 필요 호스트: `fred.stlouisfed.org`, `query1.finance.yahoo.com`, `m.stock.naver.com` (`stooq.com`, `data.krx.co.kr`은 예비).
 
 | 데이터 | 소스 | 시리즈 |
 |---|---|---|
@@ -25,9 +32,10 @@ node --test site/js/engine.test.js  # 백테스트 엔진 테스트 (미래 데�
 | 달러 인덱스 | FRED | DTWEXBGS |
 | 기대인플레이션 | FRED | T10YIE |
 | 10Y 국채 | FRED | DGS10 |
-| USD/KRW | FRED | DEXKOUS |
+| USD/KRW | FRED + 네이버 금융(최근 1년) | DEXKOUS · FX_USDKRW |
+| KRX 국내 금 (원/g) | 네이버 금융 (KRX 금시장 금 99.99_1kg 종가) | M04020000 (2014-03~) |
 
-미연결(수동 입력): KRX 금 시세, WGC 중앙은행 수요, CFTC 포지션 → 이후 Phase에서 연결.
+미연결(수동 입력): WGC 중앙은행 수요, CFTC 포지션. 네이버 금융 데이터는 개인·비상업 용도로만 사용하세요.
 
 ## 기능 현황
 | Phase | 내용 | 상태 |
@@ -36,6 +44,7 @@ node --test site/js/engine.test.js  # 백테스트 엔진 테스트 (미래 데�
 | 2 | 대시보드, 금 vs 실질금리·달러, 52주 롤링 상관, 계절성(월·요일), 연도×월 히트맵 | 완료 |
 | 3 | 일별 백테스트 랩: 전략 6종, 거래비용·현금 이자·체결 지연·리밸런싱 밴드, 성과지표, 낙폭, 연도별 수익률, 롤링 수익률, 파라미터 민감도, 워크포워드 | 완료 |
 | — | 메인 보드: 가격 온도(1년·4년 기준), 가격 지도, 과거 유사 국면, 예산별 분할 매수 계획, 추세 기반 매도 신호 | 완료 |
+| 5 | KRX 국내 시세·괴리율 자동 계산, 알림 6종, 일간 브리핑(`site/data/brief.md`), 매일 자동 갱신 | 완료 |
 | 4 | 시그널 검증, 보정된 가격 범위 모델, 유사 국면 모델(미채택), 3상태 HMM 국면 · 전부 워크포워드 검증 | 완료 |
 | 5 | KRX 시세, 알림, 브리핑 | 예정 |
 
@@ -51,6 +60,11 @@ node --test site/js/engine.test.js  # 백테스트 엔진 테스트 (미래 데�
 - **매수 계획**: 공격형(오늘 60%·3회), 균형형(30%·6회), 안정형(15%·12회), 회차 간격 1개월. 각 방식의 과거 평균 매입 단가를 일시 매수와 비교해 표시.
 - **매도 신호**: 4년 평균선 이탈, 50/200일선 하락 교차, 과열(1년 온도 90↑ & 4년 온도 85↑).
 - 데이터상 금은 "싸 보일 때"보다 "추세가 살아 있을 때"의 성과가 좋았고, 분할 매수는 평균 단가를 낮추지 못했습니다(보험 성격). 화면에도 그대로 표시합니다.
+
+### Phase 5: 국내 프리미엄 · 알림 · 브리핑
+- **괴리율** = KRX 종가 ÷ (직전 COMEX 종가 × 같은 날 원/달러) − 1. KRX는 15:30 KST에 마감하므로 그 시점에 알 수 있는 COMEX 종가는 전날 미국 세션입니다. 최근 3년 평균 +0.65%, 표준편차 2.78%p, 사상 최대 +19.9%(2025-02-14).
+- **알림** (`engine.alerts`): 괴리율 ±2%(5% 초과 경고), 4년 평균선 이탈·5% 이내 접근, 최근 10거래일 내 50/200일선 교차, 하루 변동 2σ 초과(60일 변동성 기준), 52주 신고가·신저가, 가격 구간 변화.
+- **일간 브리핑** (`etl/build_models.js`): 가격·국내 프리미엄·가격 위치·추세·거시·국면·1년 범위를 수치만으로 작성. 메인 보드 "오늘의 브리핑"과 `site/data/brief.md`.
 
 ### Phase 4 검증 결과 (2026-11-27 데이터)
 | 모델 | 결과 | 채택 |

@@ -22,6 +22,22 @@ class ParseTests(unittest.TestCase):
             etl.parse_ohlc_csv("Exceeded the daily hits limit")
 
 
+class NaverTests(unittest.TestCase):
+    def test_parse_prices(self):
+        txt = '{"isSuccess":true,"result":[{"localTradedAt":"2026-11-27T00:00:00+09:00","closePrice":"157,350"},{"localTradedAt":"2026-11-26","closePrice":"1,344.00"}]}'
+        self.assertEqual(etl.parse_naver_prices(txt), {date(2026, 11, 27): 157350.0, date(2026, 11, 26): 1344.0})
+
+    def test_parse_error(self):
+        with self.assertRaises(ValueError):
+            etl.parse_naver_prices('{"result":"pageSize: must be less than or equal to 60"}')
+
+    def test_premium_uses_previous_us_close(self):
+        krx = {date(2024, 1, 3): 102000.0}
+        gold = {date(2024, 1, 2): 3110.35, date(2024, 1, 3): 9999.0}  # same-day US close is not yet known
+        fx = {date(2024, 1, 3): 1000.0}
+        self.assertAlmostEqual(etl.premium_series(krx, gold, fx)[date(2024, 1, 3)], 2.0, places=6)
+
+
 class QualityTests(unittest.TestCase):
     def test_flags_jumps_and_drops_nonpositive(self):
         s = {date(2024, 1, 1): 100, date(2024, 1, 2): 0, date(2024, 1, 3): 110, date(2024, 1, 10): 111}

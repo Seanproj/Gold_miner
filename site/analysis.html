@@ -74,7 +74,7 @@ main::before{content:"";position:absolute;inset:0 0 auto 0;height:520px;pointer-
 .chg{font-weight:600;font-size:14px}
 .pos{color:var(--pos)} .neg{color:var(--neg)}
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:3px 9px;border-radius:99px;border:1px solid var(--line2);color:var(--muted);white-space:nowrap}
-.pill.live{color:var(--pos);border-color:color-mix(in srgb,var(--pos) 40%,transparent)}
+.pill.live{color:#22C55E;border-color:rgba(34,197,94,.4)}
 .pill.manual{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 40%,transparent)}
 .seg{display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:var(--bg2);border:1px solid var(--line)}
 .seg button{white-space:nowrap;border:0;background:none;padding:6px 11px;border-radius:8px;font-size:12.5px;color:var(--muted);cursor:pointer;min-height:32px}
@@ -396,8 +396,8 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
           </div>
           <div class="tscroll" style="margin-top:12px"><table><thead><tr><th>단위</th><th>기준가</th><th>고객이 살 때</th><th>고객이 팔 때</th></tr></thead><tbody id="dRows"></tbody></table></div>
           <div class="grid" style="grid-template-columns:1fr 1.3fr;gap:14px;margin-top:14px;align-items:end">
-            <label class="ctl">KRX 금 시세 원/g (수동 입력)<input type="number" id="dKrx" step="10"></label>
-            <div><div class="sub">국내 괴리율</div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="num" id="dPrem" style="font-size:26px;font-weight:800">—</span><span class="pill" id="dPremLbl">—</span></div></div>
+            <label class="ctl"><span>KRX 금 시세 원/g <span class="pill live" style="font-size:10.5px;padding:0 6px" id="dKrxTag">자동</span></span><input type="number" id="dKrx" step="10"></label>
+            <div><div class="sub">국내 괴리율 <span id="dPremNote" style="color:var(--dim);font-size:11.5px"></span></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="num" id="dPrem" style="font-size:26px;font-weight:800">—</span><span class="pill" id="dPremLbl">—</span></div></div>
           </div>
         </div>
         <div class="card">
@@ -409,8 +409,16 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
             <a href="#forecast" style="--ac:var(--cyan)"><span><svg><use href="#i-fan"/></svg></span>가격 범위</a>
             <a href="#quality" style="--ac:var(--violet)"><span><svg><use href="#i-db"/></svg></span>데이터 품질</a>
           </div>
-          <div class="note" style="margin-top:14px">알림(시그널 임계치·괴리율 경고)과 일간 브리핑은 Phase 5에서 연결합니다. KRX 시세 자동 수집도 그때 추가합니다.</div>
+          <div class="note" style="margin-top:14px" id="deskAlerts">알림 로딩</div>
         </div>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <div class="ch"><span class="ic" style="--ac:var(--gold)"><svg><use href="#i-chart"/></svg></span>
+          <div><h3>국내 프리미엄(괴리율) 추이</h3><p id="premSub">KRX 종가 ÷ (직전 COMEX 종가 × 같은 날 환율) − 1</p></div>
+          <div class="end"><div class="seg" id="premRng"><button data-y="1">1Y</button><button data-y="3" class="on">3Y</button><button data-y="99">ALL</button></div></div></div>
+        <div class="chart" id="premChart"></div>
+        <div class="legend" style="margin-top:8px"><span style="--c:var(--gold)">괴리율 (%)</span><span style="--c:var(--line2)">±2% 정상 범위 · +5% 경고선</span></div>
+        <p class="note" style="margin:12px 0 0" id="premNote"></p>
       </div>
     </section>
 
@@ -753,10 +761,26 @@ function renderValidation(o){
 }
 
 // ---------- desk ----------
-$("#dUsd").value=G.last.toFixed(1);$("#dFx").value=FX.toFixed(2);$("#dKrx").value=Math.round(krwG*1.01/10)*10;
+$("#dUsd").value=G.last.toFixed(1);$("#dFx").value=FX.toFixed(2);
+if(D.domestic){$("#dKrx").value=Math.round(D.domestic.last);$("#dKrxTag").textContent="자동 · "+D.domestic.date}else{$("#dKrx").value=Math.round(krwG*1.01/10)*10;$("#dKrxTag").textContent="수동";$("#dKrxTag").className="pill manual"}
+let premYears=3;
+document.querySelectorAll("#premRng button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#premRng button").forEach(x=>x.classList.remove("on"));b.classList.add("on");premYears=+b.dataset.y;renderPremium()});
+function renderPremium(){
+  const dm=D.domestic;if(!dm){$("#premChart").innerHTML='<div class="empty">KRX 데이터 없음</div>';return}
+  const pr=dm.premium,end=pr.hist.at(-1)[0];const h=pr.hist.filter(x=>x[0]>=end-premYears*366);
+  const ref=v=>h.map(x=>[x[0]*DAY,v]);
+  lineChart($("#premChart"),{series:[{name:"괴리율",color:css("--gold"),data:h.map(x=>[x[0]*DAY,x[1],new Date(x[0]*DAY).toISOString().slice(0,10)])},{name:"+5%",color:css("--line2"),data:ref(5)},{name:"+2%",color:css("--line2"),data:ref(2)},{name:"−2%",color:css("--line2"),data:ref(-2)}],h:240,area:false,yfmt:v=>(v>0?"+":"")+v.toFixed(1)+"%",xfmt:x=>{const d=new Date(x);return `${String(d.getUTCFullYear()).slice(2)}.${String(d.getUTCMonth()+1).padStart(2,"0")}`}});
+  $("#premSub").textContent=`KRX 종가 ÷ (직전 COMEX 종가 × 같은 날 환율) − 1 · ${dm.source}`;
+  $("#premNote").innerHTML=`지금 <b class="num">${pr.last>=0?"+":""}${pr.last.toFixed(2)}%</b> (${pr.date}) · 최근 3년 평균 ${pr.mean_3y>=0?"+":""}${pr.mean_3y.toFixed(2)}%, 표준편차 ${pr.sd_3y.toFixed(2)}%p · 사상 최대 +${pr.max.toFixed(1)}% (${pr.max_date}). 국내외 시장의 마감 시각이 약 12시간 달라 하루하루의 값에는 잡음이 있습니다. 며칠 이어지는 흐름으로 판단하세요.`;
+  const A=(window.GM_MODELS&&window.GM_MODELS.alerts)||[];
+  $("#deskAlerts").innerHTML=A.length?"<b>오늘의 알림</b><br>"+A.map(a=>`· ${a.title} — ${a.detail}`).join("<br>"):"오늘은 알림이 없습니다.";
+}
 function renderDesk(){const u=+$("#dUsd").value,fx=+$("#dFx").value,a=+$("#dAsk").value/100,b=+$("#dBid").value/100;const g=u*fx/TROY;
   $("#dRows").innerHTML=[["1g",1],["1돈 (3.75g)",3.75],["10돈",37.5],["100g",100],["1kg",1000]].map(([n,w])=>`<tr><td>${n}</td><td class="num">${fmt(g*w)}</td><td class="num pos">${fmt(g*w*(1+a))}</td><td class="num neg">${fmt(g*w*(1-b))}</td></tr>`).join("");
-  const pr=(+$("#dKrx").value/g-1)*100;$("#dPrem").textContent=(pr>0?"+":pr<0?"−":"")+Math.abs(pr).toFixed(2)+"%";
+  const dm=D.domestic,untouched=dm&&+$("#dKrx").value===Math.round(dm.last)&&Math.abs(u-G.last)<.05&&Math.abs(fx-FX)<.005;
+  const pr=untouched?dm.premium.last:(+$("#dKrx").value/g-1)*100;$("#dPrem").textContent=(pr>0?"+":pr<0?"−":"")+Math.abs(pr).toFixed(2)+"%";
+  $("#dPrem").title=untouched?"시차 보정: KRX 종가를 그 직전 COMEX 종가와 비교":"입력한 값 기준 계산";
+  $("#dPremNote").textContent=untouched?`시차 보정 · ${dm.premium.date} KRX 종가 vs 직전 COMEX 종가`:"입력값 기준 (시차 보정 없음)";
   const st=pr>5?["경고 · 국내 고평가","--neg"]:pr>2?["주의","--gold"]:pr<-2?["국내 저평가","--pos"]:["정상 범위","--muted"];
   $("#dPremLbl").textContent=st[0];$("#dPremLbl").style.color=css(st[1]);$("#dPrem").style.color=css(st[1])}
 ["dUsd","dFx","dAsk","dBid","dKrx"].forEach(id=>$("#"+id).oninput=renderDesk);
@@ -771,7 +795,7 @@ const links=[...document.querySelectorAll(".side a")];
 addEventListener("scroll",()=>{let cur=links[0];links.forEach(a=>{const t=document.querySelector(a.getAttribute("href"));if(t&&t.getBoundingClientRect().top<160)cur=a});links.forEach(a=>a.classList.toggle("on",a===cur))},{passive:true});
 
 // ---------- theme / boot ----------
-function renderAll(){renderKPI();renderPrice();renderMacro();renderDual();renderCorr();renderSeason();renderFactors();renderSignal();renderCond();renderModels();renderBT();renderDesk();renderQuality()}
+function renderAll(){renderPremium();renderKPI();renderPrice();renderMacro();renderDual();renderCorr();renderSeason();renderFactors();renderSignal();renderCond();renderModels();renderBT();renderDesk();renderQuality()}
 window.GMUI.onChange(renderAll);
 renderAll();
 window.GMUI.init({asOf:G.date});

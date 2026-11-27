@@ -117,6 +117,62 @@ def parse_gold(name: str, text: str) -> Series:
     return parse_yahoo_chart(text) if name == "yahoo" else parse_ohlc_csv(text)
 
 
+NAVER_URL = ("https://m.stock.naver.com/front-api/marketIndex/prices"
+             "?category={cat}&reutersCode={code}&page={page}&pageSize=60")
+
+
+def parse_naver_prices(text: str) -> Series:
+    """Naver Finance market-index JSON → {date: close}. Dates are KST trading days."""
+    j = json.loads(text)
+    if j.get("result") == []:  # past the end of the history
+        return {}
+    if not j.get("isSuccess") or not isinstance(j.get("result"), list):
+        raise ValueError(f"naver: {str(j.get('result') or j.get('message'))[:80]}")
+    out: Series = {}
+    for row in j["result"]:
+        try:
+            d = date.fromisoformat(str(row["localTradedAt"])[:10])
+            v = float(str(row["closePrice"]).replace(",", ""))
+        except (KeyError, ValueError):
+            continue
+        if v > 0:
+            out[d] = v
+    return out
+
+
+def fetch_naver(cat: str, code: str, since: date, max_pages: int = 80) -> Series:
+    """Page backwards (newest first) until `since` is reached or the history ends."""
+    out: Series = {}
+    for page in range(1, max_pages + 1):
+        chunk = parse_naver_prices(http_get(NAVER_URL.format(cat=cat, code=code, page=page)))
+        if not chunk:
+            break
+        out.update(chunk)
+        if min(chunk) <= since:
+            break
+    return {d: v for d, v in out.items() if d >= since}
+
+
+def premium_series(krx: Series, gold: Series, fx: Series) -> Series:
+    """Domestic premium (%) per KRX day d. KRX closes 15:30 KST on d; the latest COMEX close
+    available then is the US session of d-1. FX is the same KRX day's rate (forward-filled)."""
+    gd = sorted(gold)
+    prev_gold = {}
+    j, last = 0, None
+    for d in sorted(krx):
+        while j < len(gd) and gd[j] < d:
+            last = gold[gd[j]]
+            j += 1
+        prev_gold[d] = last
+    fx_a = align(krx, fx)
+    out: Series = {}
+    for d, v in krx.items():
+        g, f = prev_gold.get(d), fx_a.get(d)
+        if g and f:
+            out[d] = (v / krw_per_gram(g, f) - 1) * 100
+    return out
+
+
 # ---------------------------------------------------------------- quality
 @dataclass
 class QualityReport:
@@ -278,6 +334,25 @@ def fetch_all(offline: bool) -> dict[str, Series]:
             except Exception as e:
                 print(f"  ! gold/{name}: {e}", file=sys.stderr)
     data["XAUUSD"] = gold or load_raw("XAUUSD")
+    # domestic: KRX gold (원/g, since the market opened in 2014) and the latest USD/KRW
+    krx: Series = {}
+    fxn: Series = {}
+    if not offline:
+        try:
+            krx = fetch_naver("metals", "M04020000", date(2014, 1, 1))
+            save_raw("KRXGOLD", krx)
+            print(f"  KRX gold from naver: {len(krx)} rows")
+        except Exception as e:
+            print(f"  ! KRX gold: {e} — using cached copy", file=sys.stderr)
+        try:
+            fxn = fetch_naver("exchange", "FX_USDKRW", date.today() - timedelta(days=400))
+            save_raw("USDKRW_NAVER", fxn)
+        except Exception as e:
+            print(f"  ! USD/KRW (naver): {e} — using cached copy", file=sys.stderr)
+    data["KRXGOLD"] = krx or load_raw("KRXGOLD")
+    fxn = fxn or load_raw("USDKRW_NAVER")
+    if fxn and data.get("DEXKOUS"):
+        data["DEXKOUS"] = {**data["DEXKOUS"], **fxn}  # FRED history, newest days from Naver
     return data
 
 
@@ -287,7 +362,8 @@ def build_bundle(data: dict[str, Series], reports: list[QualityReport]) -> dict:
     fx = data.get("DEXKOUS", {})
     out: dict = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "sources": {"gold": "COMEX gold futures GC=F (via Yahoo Finance)", "macro": "FRED, Federal Reserve Bank of St. Louis"},
+        "sources": {"gold": "COMEX gold futures GC=F (via Yahoo Finance)", "macro": "FRED, Federal Reserve Bank of St. Louis",
+                    "domestic": "KRX 금시장 (네이버 금융)", "fx": "FRED DEXKOUS + 네이버 금융 최근 환율"},
         "quality": [r.__dict__ for r in reports],
         "macro": {},
     }
@@ -325,6 +401,24 @@ def build_bundle(data: dict[str, Series], reports: list[QualityReport]) -> dict:
         }
         if fx:
             out["gold"]["krw_per_g_last"] = krw_per_gram(gold[gd[-1]], fx[sorted(fx)[-1]])
+    krx = data.get("KRXGOLD", {})
+    if krx and gold and fx:
+        prem = premium_series(krx, gold, fx)
+        kd, pd_ = sorted(krx), sorted(prem)
+        vals = [prem[d] for d in pd_]
+        recent = [prem[d] for d in pd_ if d >= pd_[-1] - timedelta(days=365 * 3)]
+        out["domestic"] = {
+            "source": "KRX 금시장 금 99.99_1kg 종가 (네이버 금융 경유)",
+            "last": krx[kd[-1]], "date": kd[-1].isoformat(),
+            "chg_1d": pct_change(krx, 1), "chg_1m": pct_change(krx, 30),
+            "hist": [[epoch_day(d), round(krx[d])] for d in kd],
+            "premium": {
+                "last": round(prem[pd_[-1]], 3), "date": pd_[-1].isoformat(),
+                "mean_3y": round(statistics.mean(recent), 3), "sd_3y": round(statistics.pstdev(recent), 3),
+                "max": round(max(vals), 2), "max_date": max(prem, key=prem.get).isoformat(),
+                "hist": [[epoch_day(d), round(prem[d], 2)] for d in pd_],
+            },
+        }
     return out
 
 
@@ -357,7 +451,7 @@ def main(argv=None) -> int:
     for name in list(data):
         positive = name not in ("DFII10",)  # real yields can be negative
         data[name], rep = check_quality(name, data[name], positive=positive,
-                                        jump_pct=8.0 if name == "XAUUSD" else 1e9)
+                                        jump_pct=8.0 if name in ("XAUUSD", "KRXGOLD") else 1e9)
         reports.append(rep)
         flag = "OK " if rep.ok() else "WARN"
         print(f"  [{flag}] {name:9s} rows={rep.rows:6d} {rep.first}→{rep.last} "

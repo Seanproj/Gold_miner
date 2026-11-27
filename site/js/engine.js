@@ -579,6 +579,57 @@
     return out;
   }
 
+  // ------------------------------------------------------------ Phase 5: verdict, alerts
+  /** One-line verdict from the two temperature zones (shared by the main board and the brief). */
+  function verdict(tempShort, tempLong) {
+    const a = ZONES.indexOf(zoneOf(tempShort)), b = ZONES.indexOf(zoneOf(tempLong));
+    if (b >= 4) return { title: "장기적으로 비싼 구간", sub: "4년 평균보다 크게 올라 있습니다. 새로 살 때는 천천히 나눠 사세요.", tone: "--z3", plan: "defensive" };
+    if (a <= 1 && b >= 1 && b <= 3) return { title: "상승 추세 속 큰 조정 구간", sub: "장기 흐름은 살아 있는데 최근 1년 흐름보다 많이 내려왔습니다.", tone: "--cyan", plan: "balanced" };
+    if (a <= 1 && b === 0) return { title: "하락 추세 — 서두르지 마세요", sub: "단기·장기 모두 평균 아래입니다. 과거엔 이럴 때 추가 하락이 잦았습니다.", tone: "--z4", plan: "defensive" };
+    if (a >= 3 && b >= 3) return { title: "과열에 가까운 구간", sub: "단기·장기 모두 평균보다 높습니다. 신규 매수는 속도를 줄이세요.", tone: "--z3", plan: "defensive" };
+    return { title: "평범한 가격대", sub: "특별히 싸지도 비싸지도 않습니다. 계획대로 나눠 사면 됩니다.", tone: "--primary", plan: "balanced" };
+  }
+
+  /** Rule-based alerts for the latest day. Levels: "critical" > "warn" > "info".
+   *  Every rule reads only data up to the latest observation. */
+  function alerts(gold, o = {}) {
+    const { p, t } = gold, n = p.length - 1, out = [];
+    const day = (d) => new Date(d * 864e5).toISOString().slice(0, 10);
+    const s50 = sma(p, 50), s200 = sma(p, 200), s1000 = sma(p, 1000);
+    // domestic premium
+    if (o.premium != null && isFinite(o.premium)) {
+      const pr = o.premium;
+      if (pr > 5) out.push({ id: "premium", level: "critical", title: "국내 금이 국제가보다 크게 비쌈", detail: `KRX 괴리율 +${pr.toFixed(2)}% (기준 5% 초과). 국내 매입은 보류하고 매도 쪽이 유리할 수 있습니다.` });
+      else if (pr > 2) out.push({ id: "premium", level: "warn", title: "국내 프리미엄 주의", detail: `KRX 괴리율 +${pr.toFixed(2)}% (정상 ±2%, 최근 3년 평균 ${o.premiumMean != null ? (o.premiumMean >= 0 ? "+" : "") + o.premiumMean.toFixed(2) + "%" : "—"}).` });
+      else if (pr < -2) out.push({ id: "premium", level: "info", title: "국내 금이 국제가보다 저렴", detail: `KRX 괴리율 ${pr.toFixed(2)}%. 국내 매입에 유리한 가격입니다.` });
+    }
+    // long-term line
+    if (isFinite(s1000[n])) {
+      const dv = (p[n] / s1000[n] - 1) * 100;
+      if (dv < 0) out.push({ id: "long", level: "critical", title: "4년 평균선 아래로 하락", detail: `가격이 4년 평균선 $${Math.round(s1000[n]).toLocaleString()}보다 ${dv.toFixed(1)}% 낮습니다. 과거엔 이후 1년 성과가 크게 나빴습니다.` });
+      else if (dv < 5) out.push({ id: "long", level: "warn", title: "4년 평균선 근접", detail: `4년 평균선까지 ${dv.toFixed(1)}% 남았습니다 ($${Math.round(s1000[n]).toLocaleString()}).` });
+    }
+    // 50/200 cross within the last 10 trading days
+    for (let k = n; k > n - 10 && k > 0; k--) {
+      const now = s50[k] > s200[k], before = s50[k - 1] > s200[k - 1];
+      if (isFinite(s200[k - 1]) && now !== before) { out.push({ id: "cross", level: "warn", title: now ? "상승 추세 전환 (골든크로스)" : "하락 추세 전환 (데드크로스)", detail: `${day(t[k])}에 50일선이 200일선을 ${now ? "위로" : "아래로"} 지났습니다.` }); break; }
+    }
+    // big daily move vs 60-day volatility
+    const vol = rollVol(p, 60)[n - 1], r = p[n] / p[n - 1] - 1, sd = vol / Math.sqrt(TD);
+    if (isFinite(sd) && sd > 0 && Math.abs(r) > 2 * sd) out.push({ id: "move", level: "warn", title: r > 0 ? "급등" : "급락", detail: `하루 ${(r >= 0 ? "+" : "") + (r * 100).toFixed(2)}% (최근 60일 기준 ${Math.abs(r / sd).toFixed(1)}σ).` });
+    // 52-week extremes
+    const w = p.slice(Math.max(0, n - 251), n);
+    if (w.length > 200 && p[n] > Math.max(...w)) out.push({ id: "high", level: "info", title: "52주 신고가", detail: `$${Math.round(p[n]).toLocaleString()}로 최근 1년 최고가를 넘었습니다.` });
+    if (w.length > 200 && p[n] < Math.min(...w)) out.push({ id: "low", level: "warn", title: "52주 신저가", detail: `$${Math.round(p[n]).toLocaleString()}로 최근 1년 최저가 아래입니다.` });
+    // temperature zone change in the last 5 trading days
+    if (o.tempShort) {
+      const z0 = zoneOf(o.tempShort[n - 5]), z1 = zoneOf(o.tempShort[n]);
+      if (isFinite(o.tempShort[n - 5]) && z0 !== z1) out.push({ id: "zone", level: "info", title: "가격 구간 변화", detail: `최근 1년 흐름 기준 "${z0[2]}" → "${z1[2]}"` });
+    }
+    const rank = { critical: 0, warn: 1, info: 2 };
+    return out.sort((a, b) => rank[a.level] - rank[b.level]);
+  }
+
   /** Weekly log returns (every 5th trading day) with their dates. */
   function weekly(gold) {
     const t = [], r = [];
@@ -586,6 +637,6 @@
     return { t, r };
   }
 
-  return { volScaledForecast, rangeModel, expandingPct, features, QS, quantile, analogForecast, baselineForecast, evaluateForecast, SCORE_BINS, signalValidation, hmmFit, weekly, temperature, priceAtTemp, ZONES, zoneOf, forwardStats, PLANS, planWeights, planCost, planStats,
+  return { verdict, alerts, volScaledForecast, rangeModel, expandingPct, features, QS, quantile, analogForecast, baselineForecast, evaluateForecast, SCORE_BINS, signalValidation, hmmFit, weekly, temperature, priceAtTemp, ZONES, zoneOf, forwardStats, PLANS, planWeights, planCost, planStats,
     sma, rsi, rollVol, alignSeries, lagByDays, FACTOR_RULES, AUTO_MAX, factorValues, signalHistory, STRATEGIES, targets, backtest, drawdown, metrics, rolling, yearly, grid, walkForward, seasonality, rollingCorr, monthEnds, GRID_FAST, GRID_SLOW };
 });
