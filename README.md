@@ -1,4 +1,6 @@
-# Gold Miner — 금거래소 매입·매도 타이밍 인텔리전스
+# Gold Miner — 금·유가 타이밍 인텔리전스
+
+> 한 사이트에서 **금**(`index.html`)과 **유가**(`oil.html`)를 함께 봅니다. 모든 페이지 상단의 `금 | 유가` 스위치로 오갑니다.
 
 금 가격 측정과 과거 데이터 기반 미래 분석으로 금거래소의 매입·매도 판단을 돕는 대시보드입니다.
 
@@ -12,7 +14,9 @@
 ## 바로 보기
 - `site/dist/index.html` — **메인 보드** (비전문가용: 싼가/비싼가, 과거 비슷한 때, 매수 계획, 매도 신호)
 - `site/dist/analysis.html` — **상세 분석** (가격·거시 분석, 시그널, 예측, 백테스트 랩, 거래 데스크, 데이터 품질)
-- 두 파일은 데이터가 내장된 단일 파일이며 같은 폴더에 두면 서로 링크됩니다.
+- `site/dist/oil.html` — **유가 메인 보드** (싼가/비싼가, 수급, 1년 범위, 어떤 상품으로 살지, 매도 신호)
+- `site/dist/oil-analysis.html` — **유가 상세 분석** (수급, 상품 비교 랩, 지표 예측력 검증, 범위·국면, USO 백테스트, 데이터 품질)
+- 네 파일 모두 데이터가 내장된 단일 파일이며 같은 폴더에 두면 서로 링크됩니다.
 - 개발용 원본: `site/index.html`, `site/analysis.html` (`site/data/gm_data.js`, `site/js/engine.js`를 읽음)
 
 ## 데이터 갱신
@@ -25,13 +29,16 @@ bash scripts/update.sh
 단계별 실행:
 ```bash
 python etl/gold_miner_etl.py        # 수집 → 품질 검사 → data/clean, site/data/gm_data.js 생성
+python etl/oil_miner_etl.py         # 유가 수집 → site/data/om_data.js (금 ETL의 환율·달러 다운로드 재사용)
 node etl/build_models.js            # Phase 4 모델(시그널 검증·가격 범위·국면) 사전 계산 → site/data/gm_models.js
+node etl/build_oil_models.js        # 유가 지표 검증·범위·국면·알림·브리핑 → site/data/om_models.js, oil_brief.md
 python etl/build_standalone.py      # site/dist/index.html, analysis.html 재생성
 python etl/build_artifact.py        # 아티팩트 게시용 파일 (site/artifact/)
 python -m unittest discover etl     # ETL 테스트
 node --test site/js/engine.test.js  # 백테스트 엔진 테스트 (미래 데이터 참조 방지 포함)
+node --test site/js/oil.test.js     # 유가 엔진 테스트 (발표 지연·분해 항등식·레버리지)
 ```
-표준 라이브러리만 사용합니다(Python 3.9+, Node 18+). 네트워크 허용 필요 호스트: `fred.stlouisfed.org`, `query1.finance.yahoo.com`, `m.stock.naver.com` (`stooq.com`, `data.krx.co.kr`은 예비).
+표준 라이브러리만 사용합니다(Python 3.9+, Node 18+). 네트워크 허용 필요 호스트: `fred.stlouisfed.org`, `query1.finance.yahoo.com`, `m.stock.naver.com`, `www.eia.gov`, `www.cftc.gov` (`stooq.com`, `data.krx.co.kr`은 예비).
 
 | 데이터 | 소스 | 시리즈 |
 |---|---|---|
@@ -84,6 +91,29 @@ node --test site/js/engine.test.js  # 백테스트 엔진 테스트 (미래 데�
 
 - 보정 혼합 모델 = (과거 수익률 분포 + 현재 변동성으로 크기를 조정한 분포)의 평균, 그 뒤 과거 예측 오차로 범위를 넓힘. 넓히는 비율은 매 시점 그 이전에 결과가 확인된 예측만으로 정합니다.
 - 결론: 금 가격의 **방향**은 어떤 모델로도 기준선보다 잘 맞히지 못했습니다. 사이트는 방향 대신 "움직일 수 있는 범위"를 보여줍니다.
+
+## 유가 (Oil Miner)
+`docs/04_oil_master_prompt.md`를 기반으로 만든 유가 페이지입니다. 금 페이지와 같은 엔진(`site/js/engine.js`)·디자인을 쓰고, 유가 전용 로직은 `site/js/oil.js`에 있습니다.
+
+| 데이터 | 소스 | 시리즈 |
+|---|---|---|
+| WTI·Brent 현물 (일별) | FRED (EIA 원자료), 최근 며칠은 Yahoo 근월물 | DCOILWTICO (1986~) · DCOILBRENTEU · CL=F · BZ=F |
+| 선물 곡선 | Yahoo Finance 월물별 종가 | CLF27.NYM … 12개월 (매일 스냅샷 누적: `data/raw/CL_CURVE.csv`) |
+| 정제 마진 | FRED 뉴욕항 휘발유·난방유 | DGASNYH · DHOILNYH → 3-2-1 크랙 |
+| 재고·생산·가동률 (주간) | EIA | WCESTUS1 · 쿠싱 · 휘발유 · 정제유 · SPR · WCRFPUS2 · WPULEUS3 |
+| 투기 포지션 (주간) | CFTC legacy | NYMEX WTI 067651 (2006~, 지난 연도는 캐시) |
+| 원유 ETF | Yahoo · 네이버 금융 | USO · BNO · KODEX WTI원유선물(H) 261220 · TIGER 원유선물Enhanced(H) 130680 |
+| 물가 | FRED | CPIAUCSL (실질 유가) |
+
+**규칙**
+- 2020-04-20 WTI −36.98달러: 로그 수익률을 정의할 수 없어 분석에서는 그날을 빼고 전후 거래일을 잇습니다(원자료·화면 설명에는 유지).
+- EIA 재고는 주말 기준일 5일 뒤, CFTC는 3일 뒤부터 사용(발표 지연). 재고 괴리 = 같은 주 직전 5년 평균 대비 %.
+- 실현 롤 수익 = USO 1년 로그 수익률 − 현물 1년 로그 수익률. 기간구조의 실제 효과를 과거까지 보여주는 대리 지표.
+- 상품 비교 분해: ① 롤·운용비용 = USO − 현물(달러), ② 환헤지·국내 운용 = KODEX(H) − USO(달러), ③ 환율 효과 = 현물(원화) − 현물(달러).
+- 가격 온도는 200일·1,250일(5년) 평균 대비 위치의 백분위. 백테스트는 투자 가능한 USO 기준(롤·보수 포함), 현물은 가상 비교용.
+- 국면 HMM은 주간 수익률을 ±25%로 잘라 학습(마이너스 유가 주간이 혼자 한 국면을 차지하지 않도록).
+
+**검증 결과 (2026-11-27 데이터, 이후 3개월 WTI 수익률과의 순위 상관)**: 재고 괴리 +0.16 (재고가 *많을수록* 이후 더 오름 — 직관과 반대), 실현 롤 −0.30, 투기 순매수 −0.18(역발상), 달러 3개월 변화 −0.12, 크랙 −0.04(없음). 표본이 겹쳐 과대평가될 수 있어 화면에는 방향과 함께 "과대평가 가능"으로 표시합니다. 12개월 범위 모델 80% 적중 78% (기준선 72%), 방향은 맞히지 못합니다.
 
 ## 문서
 - `docs/01_feasibility.md` — 실현 가능성 평가

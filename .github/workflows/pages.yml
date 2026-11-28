@@ -1,7 +1,8 @@
 name: Deploy site (GitHub Pages)
 
 # Public website: https://seanproj.github.io/Gold_miner/
-# Rebuilds with fresh data on every push and on weekdays at 16:13 KST (after the KRX gold close).
+# Gold (index.html) and oil (oil.html) pages. Rebuilds with fresh data on every push and on weekdays
+# at 16:13 KST (after the KRX gold close; EIA weekly inventories arrive Wednesday US time).
 on:
   push:
     branches: [claude/hopeful-mendel-vex26s]

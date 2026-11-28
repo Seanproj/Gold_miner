@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
-PAGES = ["index.html", "analysis.html"]
+PAGES = ["index.html", "analysis.html", "oil.html", "oil-analysis.html"]
 
 
 def inline(m: re.Match) -> str:

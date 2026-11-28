@@ -4,7 +4,7 @@
   --bg:#080D18; --bg2:#0C1322; --surface:#111A2B; --surface2:#16213A;
   --line:rgba(148,170,220,.10); --line2:rgba(148,170,220,.20);
   --text:#EDF2FC; --muted:#A3AEC4; --dim:#7D89A1;
-  --primary:#3478F6; --cyan:#20D6E8; --violet:#9B6BFF; --gold:#F5B942;
+  --primary:#3478F6; --cyan:#20D6E8; --violet:#9B6BFF; --gold:#F5B942; --oil:#F08C3A; --teal:#2FB8A6;
   --glow:rgba(52,120,246,.22);
   /* temperature scale: cold (cheap) → hot (expensive); no good/bad meaning */
   --z0:#4C9DFF; --z1:#56C6E0; --z2:#A3AEC4; --z3:#F5A04A; --z4:#FF6A55;
@@ -15,7 +15,7 @@
   --bg:#F4F6FA; --bg2:#EAEFF7; --surface:#FFFFFF; --surface2:#F7F9FC;
   --line:rgba(20,40,80,.08); --line2:rgba(20,40,80,.16);
   --text:#0E1626; --muted:#4A5770; --dim:#66738A;
-  --primary:#2563EB; --cyan:#0B93A5; --violet:#7448E0; --gold:#B87D08;
+  --primary:#2563EB; --cyan:#0B93A5; --violet:#7448E0; --gold:#B87D08; --oil:#C25E12; --teal:#13897A;
   --glow:rgba(37,99,235,.12);
   --z0:#2F7FE6; --z1:#1FA3BD; --z2:#7C889D; --z3:#D9822B; --z4:#E04A35;
 }
@@ -23,7 +23,7 @@
   --bg:#F4F6FA; --bg2:#EAEFF7; --surface:#FFFFFF; --surface2:#F7F9FC;
   --line:rgba(20,40,80,.08); --line2:rgba(20,40,80,.16);
   --text:#0E1626; --muted:#4A5770; --dim:#66738A;
-  --primary:#2563EB; --cyan:#0B93A5; --violet:#7448E0; --gold:#B87D08;
+  --primary:#2563EB; --cyan:#0B93A5; --violet:#7448E0; --gold:#B87D08; --oil:#C25E12; --teal:#13897A;
   --glow:rgba(37,99,235,.12);
   --z0:#2F7FE6; --z1:#1FA3BD; --z2:#7C889D; --z3:#D9822B; --z4:#E04A35;
 }}
@@ -52,6 +52,13 @@ button{font:inherit;color:inherit}
 .gh-in{max-width:1280px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;gap:20px}
 .gh-logo{display:flex;gap:10px;align-items:center;font-weight:800;font-size:18px;white-space:nowrap;letter-spacing:-.3px}
 .gh-logo i{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(140deg,#FFD47A,var(--gold) 45%,#C98200);font-style:normal;font-size:12.5px;font-weight:900;color:#2A1A00;box-shadow:0 6px 18px rgba(245,185,66,.28),inset 0 1px 0 rgba(255,255,255,.5)}
+.gh-logo i.oil{background:linear-gradient(140deg,#FFC08A,var(--oil) 45%,#A9480A);color:#2A1000;box-shadow:0 6px 18px rgba(240,140,58,.28),inset 0 1px 0 rgba(255,255,255,.45)}
+/* asset switch: gold ↔ oil (same on every page) */
+.gh-asset{display:inline-flex;gap:2px;padding:3px;border-radius:12px;background:var(--bg2);border:1px solid var(--line2);flex:none}
+.gh-asset a{padding:6px 12px;border-radius:9px;font-size:13.5px;font-weight:800;color:var(--muted);white-space:nowrap;transition:background .15s,color .15s}
+.gh-asset a:hover{color:var(--text)}
+.gh-asset a.on{color:#231500;background:var(--gold)}
+.gh-asset a.on.oil{color:#2A1000;background:var(--oil)}
 .gh-tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
 .gh-tabs::-webkit-scrollbar{display:none}
 .gh-tabs a{padding:8px 14px;border-radius:10px;color:var(--muted);font-size:14.5px;font-weight:600;white-space:nowrap;transition:background .15s,color .15s}
@@ -85,4 +92,4 @@ details.why b{color:var(--text)}
 .in.d1{animation-delay:.06s}.in.d2{animation-delay:.12s}.in.d3{animation-delay:.18s}.in.d4{animation-delay:.24s}.in.d5{animation-delay:.3s}.in.d6{animation-delay:.36s}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.in{animation:none}*{transition:none!important}}
 
-@media (max-width:760px){.gh-in{padding:0 16px;gap:10px}.gh-fresh{display:none}.gh-logo b{display:none}.gh-sub{padding:0 16px 10px}.gh-tabs a{padding:8px 10px;font-size:14px}.gh-btn .lbl{display:none}}
+@media (max-width:760px){.gh-in{padding:0 16px;gap:10px}.gh-fresh{display:none}.gh-logo b{display:none}.gh-sub{padding:0 16px 10px}.gh-tabs a{padding:8px 10px;font-size:14px}.gh-btn .lbl{display:none}.gh-asset a{padding:6px 9px}}

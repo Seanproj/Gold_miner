@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oil Miner</title>
+<meta name="description" content="지금 유가가 과거 데이터 기준으로 싼지 비싼지, 수급은 어떤지, 원유 ETF로 사면 실제로 얼마를 얻고 잃는지 보여주는 유가 보드">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="css/theme.css">
+<script src="js/ui.js"></script>
+<link rel="stylesheet" href="css/board.css">
+<style>
+:root{--accent:var(--oil)}
+.won small{letter-spacing:-.2px}
+.pmap .keyline svg{width:20px;height:20px;flex:none}
+.supply{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.supply .card{display:flex;flex-direction:column;gap:10px}
+.sup-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.sup-h h3{margin:0;font-size:15px;color:var(--muted);font-weight:600}
+.sup-h .tag2{font-size:12px;font-weight:700;color:var(--dim);white-space:nowrap}
+.sup-v{font-size:34px;font-weight:900;letter-spacing:-1.2px;line-height:1.1}
+.sup-v small{font-size:.42em;font-weight:700;color:var(--muted);margin-left:6px;letter-spacing:-.2px}
+.sup-l{font-size:17px;font-weight:800;letter-spacing:-.4px}
+.sup-p{margin:0;font-size:14.5px;color:var(--muted)}
+.sup-p b{color:var(--text)}
+.gauge{position:relative;height:12px;border-radius:99px;background:var(--line2);margin:22px 4px 26px}
+.gauge .rng{position:absolute;top:0;height:100%;border-radius:99px;background:color-mix(in srgb,var(--teal) 40%,transparent)}
+.gauge .avg{position:absolute;top:-6px;width:2px;height:24px;background:var(--muted);transform:translateX(-50%)}
+.gauge .cur{position:absolute;top:50%;width:22px;height:22px;border-radius:50%;transform:translate(-50%,-50%);background:var(--text);border:5px solid var(--surface);box-shadow:0 0 0 2px var(--text)}
+.gauge .lb{position:absolute;top:22px;transform:translateX(-50%);font-size:11.5px;color:var(--dim);white-space:nowrap}
+.gauge .lb.t{top:-22px}
+.minirows{display:grid;gap:2px;margin-top:2px}
+.minirow{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:7px 0;border-bottom:1px solid var(--line)}
+.minirow:last-child{border:0}
+.minirow span{color:var(--muted)}
+.pbar{position:relative;height:8px;border-radius:99px;margin:14px 0 6px;background:linear-gradient(90deg,var(--z0),var(--z2) 50%,var(--z4))}
+.pbar i{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);background:var(--text);border:3px solid var(--surface)}
+.pbar-l{display:flex;justify-content:space-between;font-size:12px;color:var(--dim)}
+.curve svg{display:block;width:100%;overflow:visible}
+.ev{font-size:13.5px;color:var(--muted);line-height:1.65}
+.ev b{color:var(--text)}
+.seg2{display:inline-flex;gap:2px;padding:3px;border-radius:12px;background:var(--bg2);border:1px solid var(--line)}
+.seg2 button{border:0;background:none;padding:8px 14px;border-radius:9px;font-size:13.5px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap}
+.seg2 button.on{background:var(--primary);color:#fff}
+.prod{display:grid;gap:10px;margin-top:18px}
+.prow{display:grid;grid-template-columns:minmax(0,230px) 1fr 86px;gap:14px;align-items:center}
+.prow .nm{font-size:14.5px;font-weight:700;line-height:1.3}
+.prow .nm small{display:block;font-size:12px;color:var(--dim);font-weight:500}
+.prow .bar{position:relative;height:26px;border-radius:8px;background:var(--bg2)}
+.prow .bar i{position:absolute;top:3px;bottom:3px;border-radius:6px}
+.prow .bar .z{position:absolute;top:-4px;bottom:-4px;width:1px;background:var(--line2)}
+.prow .v{text-align:right;font-weight:900;font-size:16px}
+.prow.ref .nm{color:var(--muted);font-weight:600}
+.parts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.part{padding:16px;border-radius:14px;background:var(--bg2);border:1px solid var(--line)}
+.part .k{font-size:13px;color:var(--muted);font-weight:600}
+.part .v{font-size:26px;font-weight:900;letter-spacing:-1px;margin:2px 0}
+.part p{margin:0;font-size:12.5px;color:var(--dim);line-height:1.55}
+.lev{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+@media (max-width:1080px){.supply{grid-template-columns:1fr}.lev{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){.parts{grid-template-columns:1fr}.prow{grid-template-columns:1fr 70px;gap:6px 10px}.prow .bar{grid-column:1/-1;grid-row:2}.sup-v{font-size:28px}}
+</style>
+<script src="data/om_data.js"></script>
+<script src="data/om_models.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/oil.js"></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-thermo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 14.8V5a2 2 0 1 0-4 0v9.8a4 4 0 1 0 4 0z"/><path d="M12 9v7"/></symbol>
+  <symbol id="i-barrel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="7" ry="2.5"/><path d="M5 5v14c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V5M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/></symbol>
+  <symbol id="i-curve" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M6 8c4 0 6 3 8 6s4 4 7 4"/></symbol>
+  <symbol id="i-compass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7 15h10"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 7h14M3 14l2-7 2 7a2.5 2.5 0 0 1-4 0zM17 14l2-7 2 7a2.5 2.5 0 0 1-4 0zM8 21h8"/></symbol>
+  <symbol id="i-plan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M8 14h3M8 17h6"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+</svg>
+
+<header class="gh">
+  <div class="gh-in">
+    <a class="gh-logo" href="oil.html"><i class="oil">Oil</i><b>Oil Miner</b></a>
+    <nav class="gh-asset" aria-label="자산 선택"><a href="index.html">금</a><a href="oil.html" class="on oil" aria-current="true">유가</a></nav>
+    <nav class="gh-tabs" aria-label="페이지">
+      <a href="oil.html" class="on" aria-current="page">메인</a>
+      <a href="oil-analysis.html">상세 분석</a>
+      <a href="oil-analysis.html#supply">수급</a>
+      <a href="oil-analysis.html#products">상품 비교</a>
+    </nav>
+    <div class="gh-tools"><span class="gh-fresh" id="fresh"><i></i><span>데이터 로딩</span></span><button class="gh-btn" id="udBtn" aria-label="상승·하락 색 관례 전환"></button><button class="gh-btn" id="themeBtn" aria-label="테마 전환"></button></div>
+  </div>
+  <nav class="gh-sub" aria-label="섹션">
+    <a href="#top">한눈에</a><a href="#brief">브리핑·알림</a><a href="#q1"><em>Q1</em>가격 수준</a><a href="#q2"><em>Q2</em>수급</a><a href="#q3"><em>Q3</em>1년 범위</a><a href="#q4"><em>Q4</em>상품 고르기</a><a href="#q5"><em>Q5</em>매도 신호</a>
+  </nav>
+</header>
+
+<main class="wrap" id="top">
+  <a class="alertbar" id="alertbar" href="#brief" hidden></a>
+  <div class="bento">
+    <div class="tile price in">
+      <div class="eyebrow">오늘의 국제 유가 · WTI (미국 서부 텍사스산 원유) 1배럴</div>
+      <div class="won num" id="usdBig">—</div>
+      <div class="sub num"><span class="chg" id="chg">—</span><span>Brent <b id="brent">—</b></span><span>원화 환산 <b id="lit">—</b>/리터</span><span>환율 <b id="fx">—</b></span></div>
+      <div class="spark" id="spark"></div>
+      <div class="mini num"><span>1년 전보다 <b id="y1">—</b></span><span>사상 최고가 대비 <b id="fromPeak">—</b></span><span id="realMini"></span></div>
+    </div>
+    <div class="tile verdict in d1" id="verdict" style="--vc:var(--cyan)">
+      <span class="vbadge"><i></i>지금은</span>
+      <h1 id="vTitle">—</h1>
+      <p id="vSub">—</p>
+      <div class="rec"><svg class="ico"><use href="#i-plan"/></svg><div><small>데이터 기반 추천</small><b id="vRec">—</b></div></div>
+      <div class="cta"><a class="btn" href="#q4">어떤 상품으로 살지 보기 <svg class="ico"><use href="#i-arrow"/></svg></a><a class="btn ghost" href="#q2">수급 보기</a></div>
+    </div>
+    <a class="tile glance in d2" href="#q1"><div class="gl-h">최근 1년 흐름 기준<svg><use href="#i-thermo"/></svg></div><div class="gl-v" id="gS">—</div><div class="mscale"><i id="gSm"></i></div><div class="gl-s" id="gSs">—</div></a>
+    <a class="tile glance in d3" href="#q1"><div class="gl-h">장기 5년 흐름 기준<svg><use href="#i-thermo"/></svg></div><div class="gl-v" id="gL">—</div><div class="mscale"><i id="gLm"></i></div><div class="gl-s" id="gLs">—</div></a>
+    <a class="tile glance in d4" href="#q2"><div class="gl-h">미국 원유 재고<svg><use href="#i-barrel"/></svg></div><div class="gl-v num" id="gI">—</div><div class="gl-s" id="gIs">—</div><div class="go">수급 보기 →</div></a>
+    <a class="tile glance in d5" href="#q2"><div class="gl-h">선물 기간구조<svg><use href="#i-curve"/></svg></div><div class="gl-v" id="gC">—</div><div class="gl-s" id="gCs">—</div><div class="go">무슨 뜻인가요? →</div></a>
+  </div>
+
+  <section id="brief">
+    <div class="q"><em>오늘</em><h2>오늘의 브리핑</h2></div>
+    <p class="lead" id="briefLead">매일 데이터가 갱신되면 자동으로 다시 작성됩니다. 모든 문장은 수치에서만 만들어지며 추측은 넣지 않습니다.</p>
+    <div class="briefgrid">
+      <div class="card"><div id="briefList"></div></div>
+      <div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px"><b style="font-size:18px;letter-spacing:-.4px">알림</b><span style="font-size:13px;color:var(--muted)" id="alertCount"></span></div><div id="alertList"></div>
+        <details class="why"><summary>알림은 어떤 기준인가요?</summary><div>하루 변동이 최근 60일 기준 2σ 초과(3σ는 경고) · 52주 신고가/신저가 · 최근 10거래일 안의 50/200일선 교차 · 기간구조 전환(콘탱고↔백워데이션) · 원유 재고가 같은 주 5년 범위를 벗어남 · ETF와 현물의 3개월 수익률 차이 8%p 초과 · 가격 구간 변화.</div></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="q1">
+    <div class="q"><em>Q1</em><h2>지금 유가, 싼가요 비싼가요?</h2></div>
+    <p class="lead">유가는 오르내림이 크고 평균으로 돌아오는 성향이 있어, 가격 숫자 대신 <b>평균선에서 얼마나 떨어져 있는지</b>를 1986년 이후 40년과 비교합니다. 파랑은 저렴, 주황·빨강은 비쌈입니다.</p>
+    <div class="g2">
+      <div class="card thermo"><h3>최근 1년 흐름 기준 · 200일 평균 대비</h3><div class="word" id="tsWord">—</div><p class="why" id="tsWhy">—</p><div class="scale"><div class="mk" id="tsMk"></div></div><div class="scale-l"><span>매우 저렴</span><span>보통</span><span>매우 비쌈</span></div></div>
+      <div class="card thermo"><h3>장기 흐름 기준 · 5년(1,250일) 평균 대비</h3><div class="word" id="tlWord">—</div><p class="why" id="tlWhy">—</p><div class="scale"><div class="mk" id="tlMk"></div></div><div class="scale-l"><span>매우 저렴</span><span>보통</span><span>매우 비쌈</span></div></div>
+    </div>
+    <div class="card pmap" style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline;margin-bottom:6px"><b style="font-size:18px;letter-spacing:-.4px">가격 지도</b><span style="color:var(--muted);font-size:13.5px">색 띠 = 최근 1년 흐름 기준 구간 · 원/리터는 현재 환율 기준</span></div>
+      <div id="pmap"></div>
+      <div class="keyline"><svg class="ico"><use href="#i-info"/></svg><div id="realKey">—</div></div>
+    </div>
+  </section>
+
+  <section id="q2">
+    <div class="q"><em>Q2</em><h2>지금 수급은 빡빡한가요, 느슨한가요?</h2></div>
+    <p class="lead">원유는 "지금 남는지, 모자라는지"가 가격을 움직입니다. 미국 재고, 선물 가격 구조, 정제 마진, 투기 자금 네 가지로 확인합니다. 각 지표가 <b>과거에 실제로 앞날을 맞혔는지</b>도 함께 보여드립니다.</p>
+    <div class="supply">
+      <div class="card" id="supInv"></div>
+      <div class="card" id="supCurve"></div>
+      <div class="card" id="supCrack"></div>
+      <div class="card" id="supCot"></div>
+    </div>
+  </section>
+
+  <section id="q3">
+    <div class="q"><em>Q3</em><h2>앞으로 1년, 유가는 어디쯤일까요?</h2></div>
+    <p class="lead" id="pastLead">—</p>
+    <div class="card">
+      <div class="ahead" id="ahead" style="margin-top:0"></div>
+      <div class="stats" style="margin-top:16px">
+        <div class="stat"><div class="k">1년 뒤 평균 수익률</div><div class="v num" id="sMean">—</div><div class="s" id="sMeanAll">—</div></div>
+        <div class="stat"><div class="k">1년 뒤 오른 확률</div><div class="v num" id="sUp">—</div><div class="s" id="sUpAll">—</div></div>
+        <div class="stat"><div class="k">나빴던 경우 · 하위 10%</div><div class="v num" id="sP10">—</div><div class="s">10번 중 1번은 이보다 나빴음</div></div>
+        <div class="stat"><div class="k">좋았던 경우 · 상위 10%</div><div class="v num" id="sP90">—</div><div class="s">10번 중 1번은 이보다 좋았음</div></div>
+      </div>
+      <div class="chips" id="episodes"></div>
+      <div class="keyline"><svg class="ico"><use href="#i-info"/></svg><div id="honestKey">—</div></div>
+    </div>
+  </section>
+
+  <section id="q4">
+    <div class="q"><em>Q4</em><h2>무엇으로, 어떻게 살까요?</h2></div>
+    <p class="lead">원유 그 자체(현물)는 살 수 없습니다. 원유 ETF는 <b>선물을 매달 갈아타며(롤오버)</b> 따라가기 때문에 같은 기간에도 현물과 결과가 크게 다릅니다. 같은 날 100만원을 넣었다면 어땠는지 비교합니다.</p>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><b style="font-size:18px;letter-spacing:-.4px" id="prodTitle">—</b><div class="seg2" id="prodSeg"><button data-y="1">1년</button><button data-y="3" class="on">3년</button><button data-y="5">5년</button><button data-y="99">KODEX 상장 이후</button></div></div>
+      <div class="prod" id="prod"></div>
+      <div class="parts" id="parts"></div>
+      <details class="why"><summary>왜 이렇게 차이가 나나요?</summary><div id="prodWhy">—</div></details>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <b style="font-size:18px;letter-spacing:-.4px">레버리지·인버스 상품 주의</b>
+      <p style="color:var(--muted);font-size:14.5px;margin:6px 0 0" id="levLead">—</p>
+      <div class="lev" id="lev"></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="plan-top">
+        <div>
+          <label class="ctl">투자 예산<div class="money"><input id="budget" inputmode="numeric" value="5,000,000" aria-label="투자 예산 (원)"><span style="color:var(--muted);font-weight:700">원</span></div></label>
+          <div class="quick" id="quick"></div>
+          <p style="color:var(--muted);font-size:14px;margin:14px 0 0" id="budgetNote">—</p>
+        </div>
+        <div class="styles" id="styles" role="radiogroup" aria-label="매수 성향"></div>
+      </div>
+      <div class="timeline" id="timeline" aria-hidden="true"></div>
+      <div class="tscroll"><table class="sched" id="sched"></table></div>
+      <div class="keyline"><svg class="ico"><use href="#i-info"/></svg><div id="planKey">—</div></div>
+      <div class="store">
+        <div><h3>실제 시세 확인하기</h3><p>위 주 수는 어제 종가 기준입니다. 원유 ETF는 장중 가격과 순자산가치(NAV)가 벌어질 수 있으니 매수 전에 괴리율을 확인하세요.</p><div class="ref num" id="storeRef"></div></div>
+        <div class="links"><a class="main" href="https://m.stock.naver.com/domestic/stock/261220/total" target="_blank" rel="noopener noreferrer">KODEX WTI원유선물(H) ↗</a><a href="https://m.stock.naver.com/domestic/stock/130680/total" target="_blank" rel="noopener noreferrer">TIGER 원유선물Enhanced(H) ↗</a></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="q5">
+    <div class="q"><em>Q5</em><h2>언제 팔거나 줄일까요?</h2></div>
+    <p class="lead">유가는 급등 뒤 급락이 잦습니다. 추세와 과열 신호 세 가지를 지금 상태와 함께, 투자 가능한 USO 기준 과거 성과로 보여드립니다.</p>
+    <div class="g3" id="rules"></div>
+  </section>
+
+  <section>
+    <div class="q"><h2>더 깊이 보기</h2></div>
+    <p class="lead">전문가용 상세 분석과 검증 도구입니다.</p>
+    <div class="g3 more">
+      <a class="card" href="oil-analysis.html#supply" style="--ac:var(--teal)"><div class="ic"><svg><use href="#i-barrel"/></svg></div><b>수급 분석</b><span>재고 5년 범위, 선물 곡선, 정제 마진, 투기 포지션, 미국 생산</span><em>열기 →</em></a>
+      <a class="card" href="oil-analysis.html#products" style="--ac:var(--oil)"><div class="ic"><svg><use href="#i-scale"/></svg></div><b>상품 비교 랩</b><span>현물 vs USO vs 국내 ETF 누적 수익률, 롤 비용, 레버리지 시뮬레이션</span><em>열기 →</em></a>
+      <a class="card" href="oil-analysis.html#backtest" style="--ac:var(--violet)"><div class="ic"><svg><use href="#i-flask"/></svg></div><b>백테스트 · 모델 검증</b><span>USO 기준 전략 비교, 지표 예측력 검증, 12개월 가격 범위</span><em>열기 →</em></a>
+    </div>
+  </section>
+
+  <footer id="foot">—</footer>
+</main>
+
+<script>
+(function(){
+const D=window.OM_DATA,M=window.OM_MODELS,E=window.GMEngine,O=window.OilEngine,UI=window.GMUI;
+const $=s=>document.querySelector(s);
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt=(n,d=0)=>isFinite(n)?n.toLocaleString("ko-KR",{maximumFractionDigits:d,minimumFractionDigits:d}):"—";
+const sgn=(v,d=1)=>isFinite(v)?(v>0?"+":v<0?"−":"")+Math.abs(v).toFixed(d)+"%":"—";
+const arrow=v=>v>0?"▲":v<0?"▼":"";
+const NS="http://www.w3.org/2000/svg";
+function el(t,a={},p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e}
+function txt(p,x,y,s,a={}){const t=el("text",{x,y,"font-size":12,fill:css("--muted"),"font-family":"inherit",...a},p);t.textContent=s;return t}
+if(!D||!D.wti||!E||!O){document.querySelector("main").innerHTML='<div class="card" style="margin-top:40px">데이터가 없습니다. <code>python etl/oil_miner_etl.py</code>를 실행하세요.</div>';return}
+
+const g=O.toSeries(D.wti.hist),n=g.p.length-1,P=g.p[n],FX=D.fx?D.fx.last:1400;
+const lit=usd=>O.wonPerLitre(usd,FX);
+const S=E.temperature(g,200),L=E.temperature(g,1250);
+const ts=S.temp[n],tl=L.temp[n],zs=E.zoneOf(ts),zl=E.zoneOf(tl);
+const s50=E.sma(g.p,50),s200=S.sma,s1250=L.sma;
+const peakI=g.p.reduce((b,v,i)=>v>g.p[b]?i:b,0);
+const dstr=d=>new Date(d*864e5).toISOString().slice(0,10);
+const ZC=["--z0","--z1","--z2","--z3","--z4"];const zi=z=>E.ZONES.indexOf(z);
+const similar=i=>E.zoneOf(S.temp[i])===zs&&E.zoneOf(L.temp[i])===zl;
+const FS=E.forwardStats(g,similar),ALL=E.forwardStats(g,i=>isFinite(L.temp[i]));
+const golden=s50[n]>s200[n],aboveLong=P>=s1250[n];
+const inv=D.inventory&&D.inventory.crude,curve=D.curve;
+const V=O.verdict(ts,tl,inv&&inv.dev,curve&&curve.roll_ann);
+const FV=Object.fromEntries(((M&&M.factors)||[]).map(f=>[f.id,f]));
+const REAL=D.cpi?O.realPrices(g,D.cpi):null;
+const USO=D.etf&&D.etf.USO?O.toSeries(D.etf.USO.hist):null;
+let first=true;
+
+function render(){
+  const usdFmt=v=>"$"+fmt(v,2)+"<small>/배럴</small>";
+  if(first)UI.countUp($("#usdBig"),P,usdFmt);else $("#usdBig").innerHTML=usdFmt(P);
+  const c1=(P/g.p[n-1]-1)*100;$("#chg").className="chg "+(c1>=0?"pos":"neg");$("#chg").textContent=`${arrow(c1)} ${sgn(c1,2)} 오늘`;
+  $("#brent").textContent=D.brent?"$"+fmt(D.brent.last,2):"—";$("#lit").textContent=fmt(lit(P))+"원";$("#fx").textContent=fmt(FX,1)+"원";
+  const y1i=g.t.findIndex(d=>d>=g.t[n]-365),y1=(P/g.p[y1i]-1)*100;$("#y1").textContent=`${arrow(y1)} ${sgn(y1)}`;$("#y1").className=y1>=0?"pos":"neg";
+  const fp=(P/g.p[peakI]-1)*100;$("#fromPeak").innerHTML=`<span class="${fp>=0?"pos":"neg"}">${arrow(fp)} ${sgn(fp)}</span> <span style="color:var(--dim)">($${fmt(g.p[peakI],0)} · ${dstr(g.t[peakI]).slice(0,7)})</span>`;
+  if(REAL){const pct=REAL.filter(v=>v<REAL[n]).length/REAL.length*100;$("#realMini").innerHTML=`물가 반영 시 1986년 이후 <b>${pct<50?"하위 "+fmt(Math.max(1,pct)):"상위 "+fmt(Math.max(1,100-pct))}%</b>`}
+  spark();
+  $("#verdict").style.setProperty("--vc",`var(${V.tone})`);$("#vTitle").textContent=V.title;$("#vSub").textContent=V.sub;
+  $("#vRec").textContent=`${E.PLANS[V.plan].n} 분할 매수 · 비중은 작게`;
+
+  const tileT=(k,T,t,z,label)=>{$(`#g${k}`).textContent=z[2];$(`#g${k}`).style.color=css(ZC[zi(z)]);$(`#g${k}m`).style.left=Math.max(4,Math.min(96,t))+"%";$(`#g${k}s`).textContent=`${label} 평균보다 ${sgn(T.dev[n]*100)}`};
+  tileT("S",S,ts,zs,"200일");tileT("L",L,tl,zl,"5년");
+  if(inv){const st=O.inventoryState(inv.dev);$("#gI").innerHTML=`<span style="color:${css(st.tone)}">${sgn(inv.dev)}</span>`;$("#gIs").textContent=`같은 주 5년 평균 대비 · ${st.label}`}
+  if(curve){const cs=O.curveState(curve.roll_ann);$("#gC").textContent=cs.label;$("#gC").style.color=css(cs.tone);$("#gCs").textContent=`롤 수익 연 ${sgn(curve.roll_ann)} · ${curve.date}`}
+
+  const thermo=(k,T,t,z,label)=>{$(`#${k}Word`).textContent=z[2];$(`#${k}Word`).style.color=css(ZC[zi(z)]);
+    const dev=T.dev[n]*100;$(`#${k}Why`).innerHTML=`지금 가격은 ${label} 평균선 <b class="num">$${fmt(T.sma[n],1)}</b>보다 <b class="num">${sgn(dev)}</b> ${dev>=0?"높습니다":"낮습니다"}. 과거에 이보다 더 낮았던 날은 <b class="num">${t.toFixed(0)}%</b>뿐입니다.`;
+    $(`#${k}Mk`).style.left=Math.max(2,Math.min(98,t))+"%"};
+  thermo("ts",S,ts,zs,"200일");thermo("tl",L,tl,zl,"5년(1,250일)");
+  pmap();
+  if(REAL){const ri=REAL.reduce((b,v,i)=>v>REAL[b]?i:b,0),avg=REAL.reduce((a,b)=>a+b,0)/REAL.length;
+    $("#realKey").innerHTML=`<b>물가를 반영하면:</b> 1986년 이후 평균 유가는 오늘 돈으로 <b>$${fmt(avg,0)}</b>, 최고는 ${dstr(g.t[ri]).slice(0,7)}의 <b>$${fmt(REAL[ri],0)}</b>였습니다. 지금 $${fmt(P,1)}는 실질 평균보다 ${sgn((P/avg-1)*100)} ${P>=avg?"높습니다":"낮습니다"}.`+(D.negative?` (참고: ${D.negative.date}에는 선물 만기 문제로 WTI가 <b>−$${Math.abs(D.negative.value).toFixed(2)}</b>, 마이너스까지 떨어졌습니다. 분석에서는 그날 하루를 제외했습니다.)`:"")}
+
+  renderSupply();renderAhead();renderBrief();renderProducts();renderLev();renderPlan();renderRules();
+  $("#pastLead").innerHTML=`과거 검증을 통과한 범위 모델로 1년 뒤 범위를 보여드리고, 최근 1년 흐름 기준 <b>${zs[2]}</b>·장기 흐름 기준 <b>${zl[2]}</b>였던 날을 1986년 이후에서 모두 찾아 1년 뒤 결과를 계산했습니다.`;
+  const setV=(id,v)=>{$(id).innerHTML=`${arrow(v)} ${sgn(v)}`;$(id).className="v num "+(v>=0?"pos":"neg")};
+  setV("#sMean",FS.mean*100);$("#sUp").textContent=(FS.up*100).toFixed(0)+"%";setV("#sP10",FS.p10*100);setV("#sP90",FS.p90*100);
+  $("#sMeanAll").textContent=`평소(모든 날) ${sgn(ALL.mean*100)}`;$("#sUpAll").textContent=`평소 ${(ALL.up*100).toFixed(0)}%`;
+  $("#episodes").innerHTML=`<span class="chip" style="color:var(--text)">비슷했던 시기 ${FS.episodes.length}번 · ${FS.n}거래일</span>`+FS.episodes.slice(-14).map(e=>`<span class="chip">${dstr(e.start).slice(0,7)}</span>`).join("");
+  $("#honestKey").innerHTML=FS.n<60?`<b>표본이 적습니다.</b> 비슷한 사례가 ${FS.n}일뿐이라 참고만 하세요.`:`유가는 1년에 ±40%도 흔한 자산입니다(하위·상위 10% 차이 ${fmt((FS.p90-FS.p10)*100,0)}%p). 같은 날짜가 여러 번 겹쳐 세어지므로 실제 독립 사례는 표시된 수보다 훨씬 적습니다.`;
+  $("#foot").innerHTML=`Oil Miner · WTI 현물 FRED(DCOILWTICO, 최근분은 NYMEX 근월물) · 재고 EIA · 포지션 CFTC · ETF Yahoo Finance·네이버 금융 · 데이터 ${D.wti.date}<br>정보 제공 목적이며 투자 권유가 아닙니다. 과거 통계는 미래를 보장하지 않습니다. 원유 ETF·ETN은 선물 롤오버, 환헤지, 보수, 괴리율 때문에 유가와 다르게 움직이며 원금 손실이 클 수 있습니다.`;
+  first=false;
+}
+
+function spark(){
+  const host=$("#spark");host.innerHTML="";const W=host.clientWidth||500,H=96;const i0=g.t.findIndex(d=>d>=g.t[n]-365);
+  const pts=g.p.slice(i0),lo=Math.min(...pts),hi=Math.max(...pts);
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,height:H},host);
+  const X=i=>i/(pts.length-1)*(W-6),Y=v=>H-8-(v-lo)/(hi-lo)*(H-22);
+  const d=pts.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+","+Y(v).toFixed(1)).join("");
+  const lg=el("linearGradient",{id:"sgo",x1:0,y1:0,x2:0,y2:1},el("defs",{},svg));el("stop",{offset:0,"stop-color":css("--oil"),"stop-opacity":.32},lg);el("stop",{offset:1,"stop-color":css("--oil"),"stop-opacity":0},lg);
+  el("path",{d:d+`L${X(pts.length-1)},${H}L0,${H}Z`,fill:"url(#sgo)"},svg);el("path",{d,fill:"none",stroke:css("--oil"),"stroke-width":2.4,"stroke-linejoin":"round"},svg);
+  const lx=X(pts.length-1),ly=Y(pts.at(-1));el("circle",{cx:lx,cy:ly,r:9,fill:css("--oil"),opacity:.22},svg);el("circle",{cx:lx,cy:ly,r:4,fill:css("--oil")},svg);
+  const hiI=pts.indexOf(hi);txt(svg,Math.min(Math.max(X(hiI),30),W-60),Y(hi)-6,`$${fmt(hi,0)}`,{"font-size":11.5,fill:css("--dim"),"text-anchor":"middle"});
+  txt(svg,0,H-1,"1년 전",{"font-size":11.5,fill:css("--dim")});
+}
+
+function pmap(){
+  const host=$("#pmap");host.innerHTML="";const W=host.clientWidth||900,narrow=W<600,H=narrow?70:168;
+  const qs=[20,40,60,80].map(q=>E.priceAtTemp(S,q));
+  const marks=[["지금",P,"--text",1],["5년 평균선",s1250[n],"--cyan",0],["200일 평균선",s200[n],"--violet",0]];
+  const lo=Math.min(P,s1250[n],qs[0])*0.88,hi=Math.max(P,s1250[n],qs[3])*1.08;
+  const pad=narrow?10:20,X=v=>pad+(Math.min(hi,Math.max(lo,v))-lo)/(hi-lo)*(W-2*pad),by=narrow?14:84;
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,height:H},host);
+  const edges=[lo,...qs,hi];
+  edges.slice(0,-1).forEach((a,i)=>{el("rect",{x:X(a)+(i?1:0),y:by,width:Math.max(1,X(edges[i+1])-X(a)-(i?1:0)),height:14,fill:css(ZC[i]),rx:i===0||i===4?7:2},svg);
+    if(!narrow)txt(svg,(X(a)+X(edges[i+1]))/2,by+36,E.ZONES[i][2],{"text-anchor":"middle","font-size":12.5,fill:css(ZC[i]),"font-weight":800})});
+  if(!narrow)qs.forEach(q=>txt(svg,X(q),by+54,"$"+fmt(q,0),{"text-anchor":"middle","font-size":11.5,fill:css("--dim")}));
+  if(narrow){
+    marks.forEach(([,v,c,main])=>{const x=X(v);el("line",{x1:x,x2:x,y1:by-10,y2:by+24,stroke:css(c),"stroke-width":main?3:2},svg);el("circle",{cx:x,cy:by+7,r:main?8:5,fill:css(c),stroke:css("--surface"),"stroke-width":3},svg)});
+    txt(svg,pad,by+46,"매우 저렴",{"font-size":12,fill:css(ZC[0]),"font-weight":800});txt(svg,W-pad,by+46,"매우 비쌈",{"font-size":12,fill:css(ZC[4]),"font-weight":800,"text-anchor":"end"});
+    const box=document.createElement("div");box.style.cssText="display:grid;gap:9px;margin-top:8px";
+    box.innerHTML=[...marks].sort((a,b)=>b[1]-a[1]).map(([name,v,c,main])=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:14px;${main?"font-weight:900":""}"><span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${css(c)};margin-right:8px"></span>${name}</span><span class="num">$${fmt(v,1)} · ${fmt(lit(v))}원/L</span></div>`).join("")
+      +`<div style="font-size:12.5px;color:var(--dim)">구간 경계: 저렴 $${fmt(qs[0],0)} · 보통 $${fmt(qs[1],0)} · 비쌈 $${fmt(qs[2],0)} · 매우 비쌈 $${fmt(qs[3],0)}~</div>`;
+    host.appendChild(box);return;
+  }
+  const sorted=[...marks].sort((a,b)=>a[1]-b[1]);let lastX=-1e9,row=0;
+  sorted.forEach(([name,v,c,main])=>{const x=X(v);row=x-lastX<150?(row+1)%2:0;lastX=x;const y=row?4:38;
+    el("line",{x1:x,x2:x,y1:y+32,y2:by+14,stroke:css(c),"stroke-width":main?2.5:1.5,"stroke-dasharray":main?"":"3 3"},svg);
+    if(main)el("circle",{cx:x,cy:by+7,r:10,fill:css("--text"),stroke:css("--surface"),"stroke-width":4},svg);
+    const anchor=x<80?"start":x>W-80?"end":"middle";
+    txt(svg,x,y+13,`${name} $${fmt(v,1)}`,{"text-anchor":anchor,"font-size":main?14:12.5,"font-weight":main?900:700,fill:css(c)});
+    txt(svg,x,y+29,`${fmt(lit(v))}원/리터`,{"text-anchor":anchor,"font-size":11.5,fill:css("--dim")})});
+}
+
+// ---- Q2 supply
+const icLine=id=>{const f=FV[id];if(!f)return "";const b=f.bins,nb=f.nowBin;
+  const ic=f.ic[63],dir=ic!=null&&Math.abs(ic)>=.05?(ic>0?" · 높을수록 이후 상승":" · 높을수록 이후 하락"):"";
+  return `<details class="why" style="margin-top:auto"><summary>과거에 앞날을 맞혔나요? · <span style="color:var(--text)">${f.verdict}${dir}</span></summary><div>이 지표와 이후 3개월 WTI 현물 수익률의 순위 상관(IC) <b>${ic!=null?ic.toFixed(2):"—"}</b> (${dstr(f.from).slice(0,4)}년~, ${fmt(f.samples)}개 표본). 지표를 5등분했을 때 이후 3개월 평균: ${b.map((x,k)=>`<b style="${k===nb?"color:var(--cyan)":""}">${k===nb?"지금 ":""}${(x.mean*100).toFixed(1)}%</b>`).join(" · ")} (낮은 구간 → 높은 구간). ${ic!=null&&Math.abs(ic)>=.05?`<b>방향 주의:</b> 이 값이 ${ic>0?"높을수록 이후 유가가 더 올랐습니다":"높을수록 이후 유가가 덜 올랐습니다(또는 더 내렸습니다)"}. 직관과 다를 수 있으니 위 설명보다 이 숫자를 우선하세요. `:""}보통 ±0.05 이상이어야 의미가 있다고 보며, 표본이 서로 겹쳐 실제보다 좋게 보일 수 있습니다.</div></details>`};
+function renderSupply(){
+  const I=D.inventory||{};
+  if(inv){const st=O.inventoryState(inv.dev),lo=Math.min(inv.min5,inv.last)*.985,hi=Math.max(inv.max5,inv.last)*1.015,pos=v=>((v-lo)/(hi-lo)*100).toFixed(1)+"%";
+    const row=(k,nm)=>I[k]&&isFinite(I[k].dev)?`<div class="minirow"><span>${nm}</span><b class="num">${sgn(I[k].dev)} <small style="color:var(--dim);font-weight:500">5년 평균 대비</small></b></div>`:"";
+    $("#supInv").innerHTML=`<div class="sup-h"><h3>미국 원유 재고 · 같은 주 5년 평균과 비교</h3><span class="tag2">EIA · ${inv.date} 주</span></div>
+      <div class="sup-v num" style="color:${css(st.tone)}">${sgn(inv.dev)}<small>${fmt(inv.last/1000,1)}백만 배럴 (주간 ${inv.chg_w>=0?"+":"−"}${fmt(Math.abs(inv.chg_w)/1000,1)})</small></div><div class="sup-l" style="color:${css(st.tone)}">${st.label}</div>
+      <div class="gauge"><div class="rng" style="left:${pos(inv.min5)};width:calc(${pos(inv.max5)} - ${pos(inv.min5)})"></div><div class="avg" style="left:${pos(inv.avg5)}"></div><span class="lb t" style="left:${pos(inv.avg5)}">5년 평균</span><span class="lb" style="left:${pos(inv.min5)}">5년 최저</span><span class="lb" style="left:${pos(inv.max5)}">최고</span><div class="cur" style="left:${pos(inv.last)}"></div></div>
+      <div class="minirows">${row("cushing","쿠싱 (WTI 인도지)")}${row("gasoline","휘발유")}${row("distillate","경유·난방유")}${I.spr?`<div class="minirow"><span>전략비축유(SPR)</span><b class="num">${fmt(I.spr.last/1000,0)}백만 배럴</b></div>`:""}</div>
+      <p class="sup-p">재고가 평소보다 <b>적으면</b> 공급이 빠듯하다는 뜻이라 가격을 받치고, <b>많으면</b> 남는다는 뜻입니다. 매주 수요일(미국 시간) 발표됩니다.</p>${icLine("inv")}`}
+  if(curve){const cs=O.curveState(curve.roll_ann);
+    $("#supCurve").innerHTML=`<div class="sup-h"><h3>선물 기간구조 · 앞으로 12개월 인도 가격</h3><span class="tag2">NYMEX · ${curve.date}</span></div>
+      <div class="sup-v" style="color:${css(cs.tone)}">${cs.label}<small>롤 수익 연 ${sgn(curve.roll_ann)}</small></div>
+      <div class="curve" id="curveSvg"></div><p class="sup-p">${cs.plain} 근월물 <b>$${fmt(curve.pts[0][1],2)}</b> → 12개월 뒤 <b>$${fmt(curve.pts.at(-1)[1],2)}</b> (${sgn(-curve.m1_m12)}).</p>${icLine("roll")}`;
+    curveSvg()}
+  if(D.crack){const c=D.crack;
+    $("#supCrack").innerHTML=`<div class="sup-h"><h3>정제 마진 · 3-2-1 크랙 스프레드</h3><span class="tag2">FRED · ${c.date}</span></div>
+      <div class="sup-v num">$${fmt(c.last,1)}<small>/배럴 · 10년 평균 $${fmt(c.mean_10y,1)}</small></div>
+      <div class="pbar"><i style="left:${Math.max(2,Math.min(98,c.pct_10y))}%"></i></div><div class="pbar-l"><span>마진 낮음</span><span>최근 10년 백분위 ${fmt(c.pct_10y)}</span><span>마진 높음</span></div>
+      <p class="sup-p">원유 3배럴로 휘발유 2배럴·경유 1배럴을 만들 때 남는 돈입니다. 높으면 정유사들이 원유를 더 사려 하므로 원유 수요에 우호적입니다.</p>${icLine("crack")}`}
+  if(D.cot){const c=D.cot;
+    $("#supCot").innerHTML=`<div class="sup-h"><h3>투기 자금 · 헤지펀드 등의 순매수</h3><span class="tag2">CFTC · ${c.date}</span></div>
+      <div class="sup-v num">${sgn(c.pct_oi)}<small>미결제약정 대비 · ${fmt(c.net)}계약</small></div>
+      <div class="pbar"><i style="left:${Math.max(2,Math.min(98,c.pct_10y))}%"></i></div><div class="pbar-l"><span>비관 쏠림</span><span>최근 10년 백분위 ${fmt(c.pct_10y)}</span><span>낙관 쏠림</span></div>
+      <p class="sup-p">투기 자금이 한쪽으로 크게 쏠리면 반대로 움직일 여지가 커집니다(역발상 지표). 지금은 <b>${c.pct_10y<20?"비관 쪽으로 쏠림":c.pct_10y>80?"낙관 쪽으로 쏠림":"중간 수준"}</b>입니다.</p>${icLine("cot")}`}
+}
+function curveSvg(){
+  const host=$("#curveSvg");if(!host)return;host.innerHTML="";const pts=curve.pts,W=host.clientWidth||420,H=120,p={l:44,r:10,t:12,b:22};
+  const vals=pts.map(x=>x[1]),lo=Math.min(...vals)*.985,hi=Math.max(...vals)*1.015;
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,height:H},host);const X=i=>p.l+i/(pts.length-1)*(W-p.l-p.r),Y=v=>H-p.b-(v-lo)/(hi-lo)*(H-p.t-p.b);
+  [lo+(hi-lo)*.2,lo+(hi-lo)*.8].forEach(t=>{el("line",{x1:p.l,x2:W-p.r,y1:Y(t),y2:Y(t),stroke:css("--line")},svg);txt(svg,p.l-6,Y(t)+4,"$"+fmt(t,0),{"text-anchor":"end","font-size":11,fill:css("--dim")})});
+  const col=css(O.curveState(curve.roll_ann).tone);
+  el("path",{d:"M"+pts.map((x,i)=>X(i).toFixed(1)+","+Y(x[1]).toFixed(1)).join("L"),fill:"none",stroke:col,"stroke-width":2.5},svg);
+  pts.forEach((x,i)=>el("circle",{cx:X(i),cy:Y(x[1]),r:i===0?5:3,fill:col},svg));
+  [0,Math.floor((pts.length-1)/2),pts.length-1].forEach(i=>txt(svg,X(i),H-6,pts[i][0].slice(2).replace("-","."),{"text-anchor":i===0?"start":i===pts.length-1?"end":"middle","font-size":11,fill:css("--dim")}));
+}
+
+// ---- brief + alerts
+const LV={critical:["경고","#FF5A5A"],warn:["주의","#F5A524"],info:["정보","#3BA7FF"]};
+function renderBrief(){
+  if(!M||!M.brief){$("#brief").style.display="none";return}
+  $("#briefLead").innerHTML=`<b>${M.brief.date}</b> 데이터 기준 · 매일 데이터가 갱신되면 자동으로 다시 작성됩니다. 모든 문장은 수치에서만 만들어지며 추측은 넣지 않습니다.`;
+  $("#briefList").innerHTML=M.brief.bullets.map(b=>`<div class="bl"><b>${b.k}</b><div>${b.t}</div></div>`).join("");
+  const A=M.alerts||[];$("#alertCount").textContent=A.length?`${A.length}건`:"없음";
+  $("#alertList").innerHTML=A.length?A.map(a=>`<div class="al" style="--lc:${LV[a.level][1]}"><i></i><div><b>${LV[a.level][0]} · ${a.title}</b><span>${a.detail}</span></div></div>`).join(""):'<p style="margin:0;color:var(--muted)">오늘은 특별한 알림이 없습니다.</p>';
+  const top=A.filter(a=>a.level!=="info");const bar=$("#alertbar");
+  if(top.length){bar.hidden=false;bar.style.setProperty("--ac",LV[top[0].level][1]);bar.innerHTML=`<i></i><span>알림 ${top.length}건 · ${top.map(a=>a.title).join(" · ")}</span><em>자세히 →</em>`}else bar.hidden=true;
+}
+
+// ---- Q3 range (validated model)
+function renderAhead(){
+  const box=$("#ahead");if(!M||!M.range||!M.range[252]){box.style.display="none";return}
+  const r=M.range[252],q=r.now.q.map(v=>P*Math.exp(v)),c80=r.eval.model.c80;
+  const lo=Math.min(q[0],P)*.95,hi=q[4]*1.03,pos=v=>((v-lo)/(hi-lo)*100).toFixed(2)+"%";
+  box.innerHTML=`<div class="ahead-h"><b>앞으로 1년, 10번 중 8번은 이 범위</b><span>과거 검증 적중률 ${(c80*100).toFixed(0)}% (${r.eval.n}회 검증)</span></div>
+   <div class="rbar"><div class="track"></div><div class="band" style="left:${pos(q[0])};width:calc(${pos(q[4])} - ${pos(q[0])})"></div>
+   <div class="tick" style="left:${pos(q[0])}">하단 10%<b class="num">$${fmt(q[0],0)}</b></div>
+   <div class="tick" style="left:${pos(q[2])}">중앙<b class="num">$${fmt(q[2],0)}</b></div>
+   <div class="tick" style="left:${pos(q[4])}">상단 10%<b class="num">$${fmt(q[4],0)}</b></div>
+   <div class="tick now" style="left:${pos(P)}">지금 $${fmt(P,1)}</div></div>
+   <div style="font-size:13.5px;color:var(--muted);margin-top:18px">원화로는 ${fmt(lit(q[0]))} ~ ${fmt(lit(q[4]))}원/리터(현재 환율). 범위가 넓은 이유는 최근 변동성이 크기 때문입니다. <b style="color:var(--text)">오를지 내릴지는 맞히지 못합니다</b> — 금과 마찬가지로 방향 대신 "얼마나 움직일 수 있는지"만 보여드립니다.</div>`;
+}
+
+// ---- Q4 products
+let prodYears=3;
+document.querySelectorAll("#prodSeg button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#prodSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");prodYears=+b.dataset.y;renderProducts();renderLev()});
+function renderProducts(){
+  if(!D.etf||!D.etf.USO||!D.fx){$("#q4 .card").style.display="none";return}
+  const end=g.t[n],C=O.compareProducts(D,prodYears>50?0:end-Math.round(prodYears*365.25));
+  $("#prodTitle").textContent=`${dstr(C.start)} → ${dstr(C.end)} (${C.years.toFixed(1)}년) · 100만원을 넣었다면`;
+  const mx=Math.max(...C.rows.map(r=>Math.abs(r.ret)),.1),zero=50;
+  $("#prod").innerHTML=C.rows.map(r=>{const w=Math.abs(r.ret)/mx*48,left=r.ret>=0?zero:zero-w;
+    return `<div class="prow ${r.invest?"":"ref"}"><div class="nm">${r.n}<small>${r.note}</small></div><div class="bar"><span class="z" style="left:${zero}%"></span><i style="left:${left}%;width:${w}%;background:${r.ret>=0?css("--up"):css("--down")};opacity:${r.invest?1:.45}"></i></div><div class="v num ${r.ret>=0?"pos":"neg"}">${fmt(100*(1+r.ret),0)}만<br><small style="font-size:12px;font-weight:700">${sgn(r.ret*100,0)}</small></div></div>`}).join("");
+  const pt=(k,v,p)=>`<div class="part"><div class="k">${k}</div><div class="v num ${v>=0?"pos":"neg"}">${isFinite(v)?(v>=0?"+":"−")+Math.abs(v*100).toFixed(1)+"%p":"—"}</div><p>${p}</p></div>`;
+  $("#parts").innerHTML=pt("① 롤오버·운용비용",C.parts.roll,"USO − 현물(달러). 콘탱고면 손해, 백워데이션이면 이익.")+pt("② 환헤지·국내 운용 차이",C.parts.hedge,"KODEX(H) − USO(달러). 환헤지 비용·이익, 보수, 운용 방식 차이.")+pt("③ 환율 효과 (헤지 안 한 경우)",C.parts.fx,"현물(원화) − 현물(달러). 원화가 약해지면 이익.");
+  $("#prodWhy").innerHTML=`원유 ETF는 실물 원유가 아니라 <b>선물 계약</b>을 들고 있다가 만기 전에 다음 달 계약으로 갈아탑니다. 다음 달 계약이 더 비싸면(콘탱고) 갈아탈 때마다 조금씩 손해를 보고, 더 싸면(백워데이션) 이익을 봅니다. 2020년처럼 콘탱고가 심할 때는 유가가 회복돼도 ETF는 크게 뒤처졌고, 지금처럼 백워데이션이 강할 때는 ETF가 현물보다 앞섭니다. 국내 상장 원유 ETF는 대부분 <b>환헤지(H)</b>형이라 원/달러 환율 변화의 영향을 거의 받지 않는 대신 한·미 금리 차이만큼 헤지 비용·이익이 생깁니다. 해외 ETF(USO)를 원화로 사면 환율 효과를 그대로 받습니다.`;
+}
+function renderLev(){
+  if(!USO)return;const end=USO.t.length-1,from=prodYears>50?USO.t.findIndex(d=>d>=D.etf.KODEX_WTI.hist[0][0]):USO.t.findIndex(d=>d>=USO.t[end]-Math.round(prodYears*365.25));
+  const r=O.leverage(USO,Math.max(0,from),end,2);
+  $("#levLead").innerHTML=`같은 기간 USO를 기초로 매일 2배(레버리지)·−1배(인버스)를 따라가는 상품을 시뮬레이션했습니다(연 보수 0.68% 가정). 유가가 크게 오르내리면 <b>방향이 맞아도</b> 단순 계산보다 손해를 볼 수 있습니다.`;
+  const c=(k,v,s)=>`<div class="stat"><div class="k">${k}</div><div class="v num ${v>=0?"pos":"neg"}">${sgn(v*100,0)}</div><div class="s">${s}</div></div>`;
+  $("#lev").innerHTML=c("기초자산 (USO)",r.under,"같은 기간 실제 수익률")+c("2배 · 단순 기대",r.naive,"수익률 × 2")+c("2배 · 실제 (매일 2배)",r.actual,`차이 ${sgn(r.drag*100,0).replace("%","%p")}`)+c("인버스 · 실제 (매일 −1배)",r.inverse,`단순 기대 ${sgn(r.naiveInv*100,0)}`);
+}
+
+// ---- Q4 plan
+let style=V.plan;
+const PLAN_KEYS=Object.keys(E.PLANS);
+const PALL=Object.fromEntries(PLAN_KEYS.map(k=>[k,E.planStats(g,k,i=>i>200)]));
+const KX=D.etf&&D.etf.KODEX_WTI;
+function budget(){return Math.max(0,+($("#budget").value.replace(/[^0-9]/g,""))||0)}
+[["100만",1e6],["300만",3e6],["500만",5e6],["1,000만",1e7],["3,000만",3e7]].forEach(([l,v])=>{const b=document.createElement("button");b.textContent=l;b.onclick=()=>{$("#budget").value=fmt(v);renderPlan()};$("#quick").appendChild(b)});
+$("#budget").addEventListener("input",e=>{const c=budget();e.target.value=c?fmt(c):"";renderPlan()});
+function renderPlan(){
+  $("#styles").innerHTML=PLAN_KEYS.map(k=>{const P_=E.PLANS[k],a=PALL[k];return `<button class="style ${k===style?"on":""}" data-k="${k}" role="radio" aria-checked="${k===style}">${k===V.plan?'<span class="tag">추천</span>':""}<b>${P_.n}</b><div class="d">${P_.desc}</div>
+    <div class="h">과거 평균 단가 <b>${sgn(a.mean*100)}</b> <span style="color:var(--dim)">(한 번에 산 것 대비)</span><br>더 싸게 산 경우 <b>${(a.cheaper*100).toFixed(0)}%</b></div></button>`}).join("");
+  document.querySelectorAll(".style").forEach(b=>b.onclick=()=>{style=b.dataset.k;renderPlan()});
+  const B=budget(),w=E.planWeights(style),today=new Date(g.t[n]*864e5),px=KX?KX.last:NaN;
+  $("#budgetNote").innerHTML=B&&KX?`어제 종가 기준 KODEX WTI원유선물(H) 약 <b class="num" style="color:var(--text)">${fmt(Math.floor(B/px))}주</b> (1주 ${fmt(px)}원)입니다.`:"예산을 입력하세요.";
+  $("#timeline").innerHTML=w.map(x=>`<i style="flex:${x}"></i>`).join("");
+  let cum=0;
+  $("#sched").innerHTML=`<tr><th>회차</th><th>시점</th><th>매수 금액</th><th>KODEX 기준</th><th>누적</th></tr>`+w.map((x,k)=>{cum+=x;const d=new Date(today);d.setMonth(d.getMonth()+k);
+    return `<tr class="${k?"":"now"}"><td>${k?k+1+"회차":"1회차 · 오늘"}</td><td>${k?d.getFullYear()+"년 "+(d.getMonth()+1)+"월":dstr(g.t[n])}</td><td class="num">${fmt(B*x)}원</td><td class="num">${isFinite(px)?fmt(Math.floor(B*x/px))+"주":"—"}</td><td class="num">${(cum*100).toFixed(0)}%</td></tr>`}).join("");
+  const b=PALL[style];
+  $("#planKey").innerHTML=`유가는 1년 안에 30~50% 움직이는 일이 흔해 <b>한 번에 사는 것보다 나눠 사는 편이 "산 직후 급락"의 후회를 줄입니다.</b> 1986년 이후 매일 ${E.PLANS[style].n}으로 샀다면 평균 단가는 일시 매수 대비 <b>${sgn(b.mean*100)}</b>, 더 싸게 산 경우 <b>${(b.cheaper*100).toFixed(0)}%</b>, 산 직후 크게 떨어진 상위 10% 상황에서는 <b>${sgn(b.best10*100)}</b> 싸게 샀습니다. 원유는 장기 보유용이라기보다 비중을 작게 가져가는 자산입니다.`;
+  $("#storeRef").innerHTML=(KX?`<span>KODEX WTI원유선물(H) <b>${fmt(KX.last)}원</b> <span style="color:var(--dim)">(${KX.date})</span></span>`:"")+(D.etf.TIGER_OIL?`<span>TIGER 원유선물Enhanced(H) <b>${fmt(D.etf.TIGER_OIL.last)}원</b></span>`:"");
+}
+
+// ---- Q5 rules (evidence on the investable USO series)
+function renderRules(){
+  const fsB=E.forwardStats(g,i=>isFinite(s1250[i])&&g.p[i]<s1250[i]),fsA=E.forwardStats(g,i=>isFinite(s1250[i])&&g.p[i]>=s1250[i]);
+  let ev2="—",ev3="—";
+  if(USO){const o={start:USO.t.findIndex(d=>d>=13880),cost:.003,cash:.02,lag:1};// 2008-01-01
+    const mb=E.metrics(E.backtest(USO,E.targets("buyhold",USO),o),.02),mm=E.metrics(E.backtest(USO,E.targets("ma",USO,{fast:50,slow:200}),o),.02);
+    ev2=`2008년 이후 USO를 이 신호로만 보유했다면 최대 낙폭 ${sgn(mb.mdd*100,0)} → ${sgn(mm.mdd*100,0)}, 연 수익률 ${(mb.cagr*100).toFixed(1)}% → ${(mm.cagr*100).toFixed(1)}% (거래비용 0.3% 반영)`;}
+  const hot=E.forwardStats(g,i=>S.temp[i]>=90&&L.temp[i]>=85);
+  ev3=`1년·5년 온도가 모두 이 기준을 넘었던 ${fmt(hot.n)}일 동안 1년 뒤 평균 ${sgn(hot.mean*100)}, 오른 확률 ${(hot.up*100).toFixed(0)}% (평소 ${sgn(ALL.mean*100)}, ${(ALL.up*100).toFixed(0)}%)`;
+  const R=[
+    {ok:aboveLong,h:"5년 평균선 지키기",p:"가격이 5년 평균선 아래로 내려가면 장기 하락 국면일 가능성이 커집니다. 신규 매수를 멈추고 비중을 줄이는 신호로 씁니다.",
+     lv:`기준선 <b>$${fmt(s1250[n],1)}</b> · ${fmt(lit(s1250[n]))}원/리터 · 지금 ${sgn(L.dev[n]*100)}`,
+     ev:`선 아래에서 1년 뒤 평균 ${sgn(fsB.mean*100)}(오른 확률 ${(fsB.up*100).toFixed(0)}%), 선 위에서는 ${sgn(fsA.mean*100)}(${(fsA.up*100).toFixed(0)}%) · 1986년 이후`},
+    {ok:golden,h:"추세 방향 확인",p:"50일 평균선이 200일 평균선 아래로 내려가면 하락 추세입니다. 원유 ETF는 하락 추세에서 손실이 빠르게 커졌습니다.",
+     lv:`50일선 <b>$${fmt(s50[n],1)}</b> ${golden?">":"<"} 200일선 <b>$${fmt(s200[n],1)}</b>`,ev:ev2},
+    {ok:!(ts>=90&&tl>=85),h:"과열 경계",p:"단기·장기 온도가 모두 매우 높으면 급등 뒤 되돌림 위험이 큽니다. 일부 이익 실현을 고려하세요.",
+     lv:`과열 기준: 1년 온도 90↑ (<b>$${fmt(E.priceAtTemp(S,90),0)}</b> 이상) 그리고 5년 온도 85↑`,ev:ev3},
+  ];
+  $("#rules").innerHTML=R.map(r=>`<div class="card rule"><span class="lamp sm" style="--lc:${r.ok?"#22C55E":"#F59E0B"}"><i></i>${r.ok?"지금 괜찮음":"주의 신호"}</span><h3>${r.h}</h3><p>${r.p}</p><div class="lv">${r.lv}</div><details class="why" style="margin-top:2px"><summary>근거</summary><div>${r.ev}</div></details></div>`).join("");
+}
+
+UI.onChange(render);
+render();
+UI.init({asOf:D.wti.date});
+let rt;addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>{spark();pmap();curveSvg()},150)});
+})();
+</script>
+</body>
+</html>

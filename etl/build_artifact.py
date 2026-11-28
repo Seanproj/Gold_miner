@@ -4,7 +4,7 @@ The Artifact host wraps the main page in its own <!doctype>/<head>/<body> skelet
 allows stylesheets from Google Fonts, so this script:
   - drops the Pretendard stylesheet (the pages fall back to Noto Sans KR from Google Fonts),
   - writes the main page without the document skeleton tags → site/artifact/index.html,
-  - keeps full documents for the linked pages → site/artifact/pages/{index,analysis}.html.
+  - keeps full documents for the linked pages → site/artifact/pages/{index,analysis,oil,oil-analysis}.html.
 Run after build_standalone.py.
 """
 import re
@@ -29,7 +29,7 @@ def strip_skeleton(html: str) -> str:
 
 
 (OUT / "pages").mkdir(parents=True, exist_ok=True)
-for page in ("index.html", "analysis.html"):
+for page in ("index.html", "analysis.html", "oil.html", "oil-analysis.html"):
     (OUT / "pages" / page).write_text(clean((DIST / page).read_text(encoding="utf-8")), encoding="utf-8")
 main = strip_skeleton(clean((DIST / "index.html").read_text(encoding="utf-8")))
 (OUT / "index.html").write_text(main, encoding="utf-8")

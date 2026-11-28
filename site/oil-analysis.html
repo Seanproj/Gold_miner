@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oil Miner 상세 분석</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="css/theme.css">
+<script src="js/ui.js"></script>
+<link rel="stylesheet" href="css/analysis.css">
+<style>
+.ctrls{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media (max-width:1200px){.ctrls{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.ctrls{grid-template-columns:1fr 1fr}}
+.icv{font-size:11.5px;padding:3px 8px;border-radius:7px;white-space:nowrap}
+.icv.y{color:var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,transparent)}
+.icv.w{color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,transparent)}
+.icv.n{color:var(--muted);background:var(--bg2)}
+tr.sel td{background:color-mix(in srgb,var(--primary) 10%,transparent)}
+tr.click{cursor:pointer}
+</style>
+<script src="data/om_data.js"></script>
+<script src="data/om_models.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/oil.js"></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7 15h10"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></symbol>
+  <symbol id="i-fan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-6 4 12 3-6h4"/></symbol>
+  <symbol id="i-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="i-barrel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="7" ry="2.5"/><path d="M5 5v14c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V5M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/></symbol>
+  <symbol id="i-curve" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M6 8c4 0 6 3 8 6s4 4 7 4"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 7h14M3 14l2-7 2 7a2.5 2.5 0 0 1-4 0zM17 14l2-7 2 7a2.5 2.5 0 0 1-4 0zM8 21h8"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7l6 6 4-4 8 8"/><path d="M15 17h6v-6"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></symbol>
+</svg>
+
+<header class="gh">
+  <div class="gh-in">
+    <a class="gh-logo" href="oil.html"><i class="oil">Oil</i><b>Oil Miner</b></a>
+    <nav class="gh-asset" aria-label="자산 선택"><a href="analysis.html">금</a><a href="oil-analysis.html" class="on oil" aria-current="true">유가</a></nav>
+    <nav class="gh-tabs" aria-label="페이지">
+      <a href="oil.html">메인</a>
+      <a href="oil-analysis.html" class="on" aria-current="page">상세 분석</a>
+      <a href="#supply">수급</a>
+      <a href="#products">상품 비교</a>
+    </nav>
+    <div class="gh-tools"><span class="gh-fresh" id="fresh"><i></i><span>데이터 로딩</span></span><button class="gh-btn" id="udBtn" aria-label="상승·하락 색 관례 전환"></button><button class="gh-btn" id="themeBtn" aria-label="테마 전환"></button></div>
+  </div>
+</header>
+<div class="app">
+  <aside>
+    <div style="padding:4px 12px 14px;font-size:12px;font-weight:700;letter-spacing:1.2px;color:var(--dim)">이 페이지 목차</div>
+    <nav class="side">
+      <a href="#top" class="on"><svg><use href="#i-chart"/></svg>요약</a>
+      <a href="#price"><svg><use href="#i-chart"/></svg>가격 분석</a>
+      <a href="#supply"><svg><use href="#i-barrel"/></svg>수급 분석</a>
+      <a href="#products"><svg><use href="#i-scale"/></svg>상품 비교 랩</a>
+      <a href="#patterns"><svg><use href="#i-wave"/></svg>패턴 분석</a>
+      <a href="#validation"><svg><use href="#i-target"/></svg>지표 예측력 검증</a>
+      <a href="#forecast"><svg><use href="#i-fan"/></svg>미래 범위 · 국면</a>
+      <a href="#backtest"><svg><use href="#i-flask"/></svg>백테스트</a>
+      <a href="#quality"><svg><use href="#i-db"/></svg>데이터 품질</a>
+    </nav>
+    <div class="sidecard"><b>데이터 기준</b><div id="sideAsOf" class="num" style="margin-top:6px">—</div><div style="margin-top:6px">가격: FRED · NYMEX<br>재고: EIA · 포지션: CFTC</div></div>
+  </aside>
+
+  <main id="top">
+   <div class="wrap">
+    <div class="hero">
+      <p class="hello">유가 상세 분석 · 전문가용</p>
+      <h1>가격, 수급, 상품 구조까지<br><em>근거를 자세히</em> 살펴보세요</h1>
+      <p>1986년 이후 40년 유가, EIA 재고, 선물 곡선, CFTC 포지션, 실제 원유 ETF 성과로 판단합니다.</p>
+      <div class="tags"><span class="tag">가격 측정</span><span class="tag">수급 진단</span><span class="tag">롤오버 비용</span><span class="tag">검증된 범위 예측</span></div>
+    </div>
+
+    <div class="grid k4">
+      <div class="card kpi accent" style="--ac:var(--oil)">
+        <div class="lbl"><span class="ic" style="--ac:var(--oil)"><svg><use href="#i-drop"/></svg></span>WTI (USD/배럴)</div>
+        <div class="v num" id="kWti">—</div>
+        <div><span class="chg num" id="kWtiChg">—</span> <span class="sub">1일</span></div>
+        <div class="chart" id="spWti" style="margin-top:10px"></div>
+      </div>
+      <div class="card kpi accent" style="--ac:var(--primary)">
+        <div class="lbl"><span class="ic" style="--ac:var(--primary)"><svg><use href="#i-globe"/></svg></span>Brent (USD/배럴)</div>
+        <div class="v num" id="kBrent">—</div>
+        <div><span class="chg num" id="kBrentChg">—</span> <span class="sub">1일</span></div>
+        <div class="sub" style="margin-top:12px">Brent − WTI <b class="num" id="kSpread" style="color:var(--text)">—</b></div>
+      </div>
+      <div class="card kpi accent" style="--ac:var(--teal)">
+        <div class="lbl"><span class="ic" style="--ac:var(--teal)"><svg><use href="#i-barrel"/></svg></span>정제 마진 (3-2-1)</div>
+        <div class="v num" id="kCrack">—</div>
+        <div class="sub" id="kCrackSub">—</div>
+        <div class="chart" id="spCrack" style="margin-top:10px"></div>
+      </div>
+      <div class="card kpi accent" style="--ac:var(--violet)">
+        <div class="lbl"><span class="ic" style="--ac:var(--violet)"><svg><use href="#i-curve"/></svg></span>롤 수익 (연율)</div>
+        <div class="v num" id="kRoll">—</div>
+        <span class="pill" id="kRollLbl">—</span>
+        <div class="sub" style="margin-top:10px" id="kRollSub">—</div>
+      </div>
+    </div>
+
+    <section id="price" class="grid main2" style="margin-top:18px">
+      <div class="card">
+        <div class="ch"><span class="ic" style="--ac:var(--oil)"><svg><use href="#i-chart"/></svg></span>
+          <div><h3>WTI 가격 추이</h3><p>현물 종가(최근분 근월물) · 점에 마우스를 올리면 주요 이벤트</p></div>
+          <div class="end"><div class="seg" id="realSeg"><button data-k="0" class="on">명목</button><button data-k="1">실질</button></div><div class="seg" id="rng"><button data-r="1M">1M</button><button data-r="1Y" class="on">1Y</button><button data-r="5Y">5Y</button><button data-r="ALL">ALL</button></div></div></div>
+        <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap"><span class="big num" id="pBig">—</span><span class="chg num" id="pChg">—</span></div>
+        <div class="sub num" id="pKrw" style="margin-bottom:10px">—</div>
+        <div class="chart" id="pChart"></div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ic" style="--ac:var(--cyan)"><svg><use href="#i-globe"/></svg></span>
+          <div><h3>Market Overview</h3><p>유가 주변 지표 · 최근 값과 변화</p></div></div>
+        <div id="macro"></div>
+      </div>
+    </section>
+
+    <section id="supply">
+      <div class="sh"><div><h2>수급 분석</h2><p>재고 · 선물 곡선 · 정제 마진 · 투기 포지션 — 지금 원유가 남는지 모자라는지</p></div></div>
+      <div class="grid g2">
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--teal)"><svg><use href="#i-barrel"/></svg></span>
+            <div><h3>미국 재고 · 5년 범위</h3><p id="invSub">주간 · 음영 = 같은 주 과거 5년 최저~최고, 점선 = 5년 평균</p></div>
+            <div class="end"><div class="seg" id="invSeg"><button data-k="crude" class="on">원유</button><button data-k="cushing">쿠싱</button><button data-k="gasoline">휘발유</button><button data-k="distillate">정제유</button></div></div></div>
+          <div class="chart" id="invChart"></div>
+          <p class="note" style="margin:12px 0 0" id="invNote"></p>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--teal)"><svg><use href="#i-chart"/></svg></span>
+            <div><h3>재고 괴리 vs 유가</h3><p>원유 재고의 5년 평균 대비 % (오른쪽 축, 반전 — 위로 갈수록 재고 부족)</p></div></div>
+          <div class="chart" id="invDevChart"></div>
+          <div class="legend" style="margin-top:8px"><span style="--c:var(--oil)">WTI (왼쪽 축, 로그)</span><span style="--c:var(--teal)">재고 괴리 (오른쪽, 반전)</span></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--violet)"><svg><use href="#i-curve"/></svg></span>
+            <div><h3>WTI 선물 곡선</h3><p id="curveSub">월물별 종가 · 앞으로 12개월</p></div></div>
+          <div class="chart" id="curveChart"></div>
+          <p class="note" style="margin:12px 0 0" id="curveNote"></p>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--violet)"><svg><use href="#i-scale"/></svg></span>
+            <div><h3>실현 롤 수익 (USO − 현물, 1년)</h3><p>선물 펀드가 1년간 현물보다 더 번(+) 또는 잃은(−) 수익률 · 로그 수익률 차이 · 기간구조의 실제 효과</p></div></div>
+          <div class="chart" id="rollChart"></div>
+          <p class="note" style="margin:12px 0 0" id="rollNote"></p>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--teal)"><svg><use href="#i-drop"/></svg></span>
+            <div><h3>3-2-1 크랙 스프레드</h3><p>(2×휘발유 + 1×난방유 − 3×원유) ÷ 3 · 뉴욕항 현물 · USD/배럴</p></div>
+            <div class="end"><div class="seg" id="crackRng"><button data-y="5" class="on">5Y</button><button data-y="40">ALL</button></div></div></div>
+          <div class="chart" id="crackChart"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--gold)"><svg><use href="#i-target"/></svg></span>
+            <div><h3>투기적 순매수 (CFTC)</h3><p>NYMEX WTI 비상업 순포지션 ÷ 미결제약정 · 주간 · 역발상 지표</p></div></div>
+          <div class="chart" id="cotChart"></div>
+          <p class="note" style="margin:12px 0 0" id="cotNote"></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="products">
+      <div class="sh"><div><h2>상품 비교 랩</h2><p>같은 날 같은 돈을 넣었다면 · 현물 vs 해외 ETF vs 국내 ETF · 원화 기준</p></div></div>
+      <div class="grid b2">
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--oil)"><svg><use href="#i-chart"/></svg></span>
+            <div><h3>누적 성과 (시작 = 1)</h3><p>원화 기준 · USO는 그날 환율로 환산 · 현물은 투자 불가능한 기준선</p></div>
+            <div class="end"><select id="pcStart" style="width:auto;height:34px" aria-label="시작 연도"></select></div></div>
+          <div class="chart" id="pcChart"></div>
+          <div class="legend" style="margin-top:8px" id="pcLegend"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--violet)"><svg><use href="#i-scale"/></svg></span>
+            <div><h3>차이 분해</h3><p>수익률 차이가 어디서 왔는지 (%p)</p></div></div>
+          <div class="tscroll"><table id="pcTable"></table></div>
+          <div id="pcParts" style="margin-top:12px"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <div class="ch"><span class="ic" style="--ac:var(--neg)"><svg><use href="#i-wave"/></svg></span>
+          <div><h3>레버리지 · 인버스 시뮬레이터</h3><p>USO 일간 수익률 × 배수, 매일 재조정 · 연 보수 반영</p></div>
+          <div class="end"><label class="chk">배수 <input type="number" id="levK" value="2" step="0.5" min="-3" max="3" style="width:64px;height:30px"></label></div></div>
+        <div class="tscroll"><table id="levTable"></table></div>
+        <p class="note" style="margin:12px 0 0">매일 배수를 다시 맞추는 상품은 기간 수익률이 "기초자산 수익률 × 배수"와 다릅니다. 오르내림이 클수록(변동성이 클수록) 차이가 커지며, 대부분 불리한 쪽입니다. 국내 레버리지 ETN은 여기에 별도의 괴리율 위험이 있습니다.</p>
+      </div>
+    </section>
+
+    <section id="patterns">
+      <div class="sh"><div><h2>패턴 분석</h2><p>계절성 · 연도별 수익률 · 유가와 달러</p></div></div>
+      <div class="grid g2">
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--oil)"><svg><use href="#i-chart"/></svg></span>
+            <div><h3>월별 계절성</h3><p>월별 평균 수익률 · 막대 위 숫자는 상승 확률 · 드라이빙 시즌(5~8월)</p></div>
+            <div class="end"><div class="seg" id="seaSeg"><button data-y="0" class="on">전체</button><button data-y="2010">2010~</button></div></div></div>
+          <div class="chart" id="seaChart"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--violet)"><svg><use href="#i-db"/></svg></span>
+            <div><h3>연도 × 월 수익률</h3><p>월말 종가 기준 · 최근 12년</p></div></div>
+          <div class="tscroll"><table id="ymTable" class="heat num"></table></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="validation">
+      <div class="sh"><div><h2>지표 예측력 검증</h2><p>각 지표가 이후 1·3·6개월 WTI 수익률을 실제로 맞혔는지 · 그 시점에 알 수 있던 값만 사용</p></div><span class="sub num" id="mGen"></span></div>
+      <div class="grid b2">
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--violet)"><svg><use href="#i-target"/></svg></span>
+            <div><h3>순위 상관 (IC)</h3><p>+는 값이 높을수록 이후 상승, −는 이후 하락 · 행을 누르면 오른쪽에 5분위 표</p></div></div>
+          <div class="tscroll"><table id="icTable"></table></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--violet)"><svg><use href="#i-db"/></svg></span>
+            <div><h3 id="qTitle">5분위별 이후 3개월</h3><p>지표를 5등분 · 이후 3개월 평균 수익률과 상승 확률</p></div></div>
+          <div class="tscroll"><table id="qTable"></table></div>
+          <p class="note" style="margin:12px 0 0" id="valNote"></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="forecast">
+      <div class="sh"><div><h2>미래 범위 · 국면</h2><p>보정 혼합 범위 모델(금과 같은 모델) · 3상태 HMM 국면</p></div></div>
+      <div class="grid g2">
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--cyan)"><svg><use href="#i-fan"/></svg></span>
+            <div><h3>12개월 가격 범위</h3><p id="fParam">—</p></div></div>
+          <div class="chart" id="fan"></div>
+          <div class="tscroll" style="margin-top:10px"><table id="fTable" class="mt"></table></div>
+          <div class="tscroll" style="margin-top:10px"><table id="mScore" class="mt"></table></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ic" style="--ac:var(--violet)"><svg><use href="#i-wave"/></svg></span>
+            <div><h3>시장 국면 (최근 16년)</h3><p>주간 수익률로 학습한 3상태 은닉 마르코프 모델 · 배경색 = 그 주의 국면</p></div></div>
+          <div class="chart" id="regChart"></div>
+          <div class="legend" style="margin-top:8px" id="regLegend"></div>
+          <div id="regNow" style="margin-top:12px"></div>
+          <div class="tscroll" style="margin-top:10px"><table id="regTable" class="mt"></table></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="backtest">
+      <div class="sh"><div><h2>백테스트 랩</h2><p>투자 가능한 USO(롤오버·보수 포함) 기준 · 거래비용 · 현금 이자 · 다음 날 체결 · 결정은 과거 정보만</p></div><span class="sub num" id="btTime"></span></div>
+      <div class="card">
+        <div class="ctrls">
+          <label class="ctl">대상<select id="btAsset"><option value="uso">USO (투자 가능)</option><option value="spot">WTI 현물 (가상)</option></select></label>
+          <label class="ctl">시작 연도<select id="btStart"></select></label>
+          <label class="ctl">거래비용 (편도 %)<input type="number" id="btCost" value="0.3" step="0.05" min="0"></label>
+          <label class="ctl">현금 금리 (연 %)<input type="number" id="btCash" value="2" step="0.25" min="0"></label>
+          <label class="ctl">체결 지연 (일)<input type="number" id="btLag" value="1" step="1" min="0" max="5"></label>
+        </div>
+        <div class="strat" id="btStrats"></div>
+        <div class="bt2">
+          <div><div class="sub" style="margin-bottom:6px">자산 곡선 (로그)</div><div class="chart" id="btChart"></div></div>
+          <div><div class="sub" style="margin-bottom:6px">낙폭 (고점 대비)</div><div class="chart" id="ddChart"></div></div>
+        </div>
+        <div class="bt2" style="margin-top:18px">
+          <div class="tscroll"><table id="btTable" class="mt"></table></div>
+          <div class="tscroll"><table id="yrTable" class="heat num"></table></div>
+        </div>
+        <div class="bt2" style="margin-top:18px">
+          <div><div class="sub" style="margin-bottom:6px">이동평균 조합 민감도 (샤프)</div><div class="tscroll"><table id="gridTable" class="heat num"></table></div></div>
+          <div><div class="sub" style="margin-bottom:6px">워크포워드: 매년 직전 5년으로 고른 조합을 다음 1년에 운용</div><div class="chart" id="wfChart"></div><div class="tscroll"><table id="wfTable" class="mt"></table></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="quality">
+      <div class="sh"><div><h2>데이터 품질</h2><p>ETL 실행 결과 · 행 수, 기간, 지연, 급변동 플래그 (±25%)</p></div><span class="sub num" id="genAt"></span></div>
+      <div class="card"><div class="tscroll"><table id="qualTable"></table></div><p class="note" style="margin:12px 0 0" id="qualNote"></p></div>
+    </section>
+
+    <footer id="foot"></footer>
+   </div>
+  </main>
+</div>
+
+<script>
+const D=window.OM_DATA,MD=window.OM_MODELS,GE=window.GMEngine,O=window.OilEngine;
+const $=s=>document.querySelector(s);
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt=(n,d=0)=>n==null||!isFinite(n)?"—":n.toLocaleString("ko-KR",{maximumFractionDigits:d,minimumFractionDigits:d});
+const pct=(n,d=1)=>n==null||!isFinite(n)?"—":(n>0?"▲ +":n<0?"▼ −":"")+Math.abs(n).toFixed(d)+"%";
+const sg=(n,d=1,u="%")=>n==null||!isFinite(n)?"—":(n>0?"+":n<0?"−":"")+Math.abs(n).toFixed(d)+u;
+const cls=n=>n>0?"pos":n<0?"neg":"";
+const NS="http://www.w3.org/2000/svg";
+function el(t,a={},p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e}
+function txt(p,x,y,s,a={}){const t=el("text",{x,y,"font-size":11,fill:css("--dim"),...a},p);t.textContent=s;return t}
+const DAY=864e5,dayStr=d=>new Date(d*DAY).toISOString().slice(0,10);
+const ts=s=>Date.parse(s.length===7?s+"-15":s);
+if(!D||!D.wti){document.querySelector(".wrap").insertAdjacentHTML("beforeend",`<div class="card empty" style="margin-top:20px">데이터가 없습니다. <code>python etl/oil_miner_etl.py</code>를 실행하세요.</div>`);throw new Error("no data")}
+
+const W_=O.toSeries(D.wti.hist),N=W_.p.length-1,P=W_.p[N],FX=D.fx?D.fx.last:1400;
+const REAL=D.cpi?O.realPrices(W_,D.cpi):null;
+const USO=D.etf&&D.etf.USO?O.toSeries(D.etf.USO.hist):null;
+const EVENTS=[["1990-08","걸프전 (이라크 쿠웨이트 침공)"],["2008-07","사상 최고 $145"],["2008-12","금융위기 급락 $30대"],["2014-11","OPEC 증산 결정 → 2016년까지 급락"],["2020-04","마이너스 유가 (−$37)"],["2022-03","러시아-우크라이나 전쟁 $120대"]];
+
+// ---------- charts (same helper as the gold detail page) ----------
+function niceStep(s){const p=10**Math.floor(Math.log10(s));const m=s/p;return (m<1.5?1:m<3?2:m<7?5:10)*p}
+function lineChart(host,{series,h=300,yfmt=v=>v,xfmt=x=>new Date(x).toISOString().slice(0,7),events=[],area=true,compact=false,log=false,band=null,dashed=[]}){
+  host.innerHTML="";const W=host.clientWidth||600;const pad=compact?{l:2,r:2,t:6,b:2}:{l:58,r:14,t:16,b:28};
+  const svg=el("svg",{viewBox:`0 0 ${W} ${h}`,height:h},host);
+  const tip=document.createElement("div");tip.className="tip";host.appendChild(tip);
+  const xs=series[0].data.map(d=>d[0]);const ys=series.flatMap(s=>s.data.map(d=>d[1])).concat(band?band.flatMap(b=>[b[1],b[2]]):[]).filter(isFinite);
+  let lo=Math.min(...ys),hi=Math.max(...ys);const f=v=>log?Math.log(v):v;
+  if(log){lo*=.92;hi*=1.06}else{const sp=hi-lo||1;lo-=sp*.08;hi+=sp*.1}
+  const x0=xs[0],x1=xs.at(-1);
+  const X=x=>pad.l+(x-x0)/(x1-x0||1)*(W-pad.l-pad.r),Y=y=>h-pad.b-(f(y)-f(lo))/(f(hi)-f(lo))*(h-pad.t-pad.b);
+  if(!compact){
+    let ticks=[];if(log){[5,10,20,30,50,75,100,150,200,300,500,1000].forEach(t=>t>=lo&&t<=hi&&ticks.push(t))}else{const st=niceStep((hi-lo)/4);for(let t=Math.ceil(lo/st)*st;t<=hi;t+=st)ticks.push(t)}
+    ticks.forEach(t=>{el("line",{x1:pad.l,x2:W-pad.r,y1:Y(t),y2:Y(t),stroke:css("--line")},svg);txt(svg,pad.l-8,Y(t)+4,yfmt(t),{"text-anchor":"end"})});
+    const n=Math.max(2,Math.min(7,Math.floor((W-pad.l)/90)));for(let i=0;i<=n;i++){const x=x0+(x1-x0)*i/n;txt(svg,X(x),h-8,xfmt(x),{"text-anchor":i===0?"start":i===n?"end":"middle"})}
+    events.forEach(([d,l])=>{const x=ts(d);if(x<x0||x>x1)return;const g=el("g",{style:"cursor:help"},svg);
+      el("line",{x1:X(x),x2:X(x),y1:pad.t,y2:h-pad.b,stroke:css("--cyan"),"stroke-opacity":.35,"stroke-dasharray":"3 4"},g);
+      el("circle",{cx:X(x),cy:pad.t,r:5,fill:css("--cyan")},g);
+      g.addEventListener("mouseenter",()=>{tip.innerHTML=`<b>${d}</b> · ${l}`;tip.style.opacity=1;tip.style.left=Math.max(0,Math.min(X(x)/W*host.clientWidth+8,host.clientWidth-250))+"px";tip.style.top="0px"});g.addEventListener("mouseleave",()=>tip.style.opacity=0)});
+  }
+  if(band){const top=band.map(b=>[X(b[0]),Y(b[2])]),bot=band.map(b=>[X(b[0]),Y(b[1])]).reverse();el("path",{d:"M"+top.concat(bot).map(p=>p.map(v=>v.toFixed(1)).join(",")).join("L")+"Z",fill:css("--teal"),"fill-opacity":.16},svg)}
+  series.forEach((s,si)=>{const pts=s.data.filter(d=>isFinite(d[1])).map(d=>[X(d[0]),Y(d[1])]);if(!pts.length)return;const dp=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1)).join("");
+    if(area&&si===0){const id="g"+Math.random().toString(36).slice(2);const lg=el("linearGradient",{id,x1:0,y1:0,x2:0,y2:1},el("defs",{},svg));el("stop",{offset:0,"stop-color":s.color,"stop-opacity":.32},lg);el("stop",{offset:1,"stop-color":s.color,"stop-opacity":0},lg);
+      el("path",{d:dp+`L${pts.at(-1)[0]},${h-pad.b}L${pts[0][0]},${h-pad.b}Z`,fill:`url(#${id})`},svg)}
+    el("path",{d:dp,fill:"none",stroke:s.color,"stroke-width":compact?2:s.w||2.3,"stroke-linejoin":"round","stroke-dasharray":dashed.includes(si)?"5 5":""},svg);
+    if(!compact&&area&&si===0){const p=pts.at(-1);el("circle",{cx:p[0],cy:p[1],r:8,fill:s.color,opacity:.25},svg);el("circle",{cx:p[0],cy:p[1],r:3.5,fill:s.color},svg)}});
+  if(compact)return;
+  const vl=el("line",{y1:pad.t,y2:h-pad.b,stroke:css("--line2"),opacity:0},svg);const dots=series.map(s=>el("circle",{r:4.5,fill:s.color,stroke:css("--surface"),"stroke-width":2,opacity:0},svg));
+  const ov=el("rect",{x:pad.l,y:pad.t+12,width:W-pad.l-pad.r,height:h-pad.t-pad.b-12,fill:"transparent"},svg);
+  const move=ev=>{const r=svg.getBoundingClientRect();const cx=ev.touches?ev.touches[0].clientX:ev.clientX;const mx=(cx-r.left)*W/r.width;let i=0,b=1e18;xs.forEach((x,j)=>{const d=Math.abs(X(x)-mx);if(d<b){b=d;i=j}});
+    const px=X(xs[i]);vl.setAttribute("x1",px);vl.setAttribute("x2",px);vl.setAttribute("opacity",1);series.forEach((s,k)=>{const v=s.data[i]&&s.data[i][1];if(!isFinite(v)){dots[k].setAttribute("opacity",0);return}dots[k].setAttribute("cx",px);dots[k].setAttribute("cy",Y(v));dots[k].setAttribute("opacity",1)});
+    tip.innerHTML=`<b>${series[0].data[i][2]||xfmt(xs[i])}</b><br>`+series.map(s=>s.data[i]&&isFinite(s.data[i][1])?`<span style="color:${s.color}">●</span> ${s.name} <b class="num">${yfmt(s.data[i][1],1)}</b>`:"").filter(Boolean).join("<br>");
+    const sx=px/W*r.width;tip.style.opacity=1;tip.style.left=(sx>r.width-200?sx-200:sx+12)+"px";tip.style.top="24px"};
+  ov.addEventListener("mousemove",move);ov.addEventListener("touchmove",move,{passive:true});ov.addEventListener("mouseleave",()=>{tip.style.opacity=0;vl.setAttribute("opacity",0);dots.forEach(d=>d.setAttribute("opacity",0))});
+}
+const yearFmt=x=>String(new Date(x).getUTCFullYear());
+const ymFmt=x=>{const d=new Date(x);return `${String(d.getUTCFullYear()).slice(2)}.${String(d.getUTCMonth()+1).padStart(2,"0")}`};
+const heat=(v,scale)=>{if(v==null||!isFinite(v))return "";const a=Math.min(1,Math.abs(v)/scale)*55;return `background:color-mix(in srgb,${v>=0?css("--pos"):css("--neg")} ${a.toFixed(0)}%,transparent)`};
+const thin=(a,k)=>a.filter((_,i)=>i%k===0||i===a.length-1);
+
+// ---------- KPI ----------
+function renderKPI(){
+  $("#kWti").textContent="$"+fmt(P,2);$("#kWtiChg").className="chg num "+cls(D.wti.chg_1d);$("#kWtiChg").textContent=pct(D.wti.chg_1d,2);
+  lineChart($("#spWti"),{series:[{name:"WTI",color:css("--oil"),data:D.wti.hist.slice(-120).map(([d,v])=>[d*DAY,v])}],h:48,compact:true});
+  if(D.brent){$("#kBrent").textContent="$"+fmt(D.brent.last,2);$("#kBrentChg").className="chg num "+cls(D.brent.chg_1d);$("#kBrentChg").textContent=pct(D.brent.chg_1d,2);$("#kSpread").textContent="$"+fmt(D.brent.last-P,2)}
+  if(D.crack){$("#kCrack").innerHTML="$"+fmt(D.crack.last,1)+"<small>/배럴</small>";$("#kCrackSub").textContent=`최근 10년 백분위 ${fmt(D.crack.pct_10y)} · 평균 $${fmt(D.crack.mean_10y,1)}`;
+    lineChart($("#spCrack"),{series:[{name:"크랙",color:css("--teal"),data:D.crack.hist.slice(-104).map(([d,v])=>[d*DAY,v])}],h:40,compact:true})}
+  if(D.curve){const cs=O.curveState(D.curve.roll_ann);$("#kRoll").textContent=sg(D.curve.roll_ann);$("#kRoll").style.color=css(cs.tone);$("#kRollLbl").textContent=cs.label;$("#kRollLbl").style.color=css(cs.tone);$("#kRollLbl").style.borderColor=css(cs.tone);
+    $("#kRollSub").innerHTML=`근월물 $${fmt(D.curve.pts[0][1],2)} vs 차월물 $${fmt(D.curve.pts[1][1],2)} · ${D.curve.date}`}
+  $("#sideAsOf").textContent=D.wti.date;
+}
+
+// ---------- price ----------
+let RNG="1Y",REALMODE=0;
+function renderPrice(){
+  const end=W_.t[N],back={"1M":31,"1Y":366,"5Y":1830}[RNG];
+  const vals=REALMODE&&REAL?REAL:W_.p;
+  let data=W_.t.map((d,i)=>[d*DAY,vals[i],dayStr(d)]).filter(x=>!back||x[0]>=(end-back)*DAY);
+  if(data.length>1500)data=thin(data,Math.ceil(data.length/1500));
+  const ch=(data.at(-1)[1]/data[0][1]-1)*100;
+  $("#pBig").textContent="$"+fmt(P,2);$("#pChg").className="chg num "+cls(ch);$("#pChg").textContent=pct(ch,2)+` · ${RNG}${REALMODE?" (실질)":""}`;
+  $("#pKrw").textContent=`≈ ${fmt(O.wonPerLitre(P,FX),0)}원/리터 · ${fmt(P*FX)}원/배럴 (USD/KRW ${fmt(FX,1)})`+(D.wti.spliced_from?` · ${D.wti.spliced_from} 이후는 근월물 선물`:"");
+  lineChart($("#pChart"),{series:[{name:REALMODE?"WTI (오늘 달러)":"WTI",color:css("--oil"),data}],h:320,log:RNG==="ALL",events:EVENTS,yfmt:v=>"$"+fmt(v),
+    xfmt:x=>{const d=new Date(x);return back&&back<100?`${d.getMonth()+1}/${d.getDate()}`:ymFmt(x)}});
+}
+document.querySelectorAll("#rng button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#rng button").forEach(x=>x.classList.remove("on"));b.classList.add("on");RNG=b.dataset.r;renderPrice()});
+document.querySelectorAll("#realSeg button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#realSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");REALMODE=+b.dataset.k;renderPrice()});
+
+function renderMacro(){
+  const I=D.inventory||{},rows=[];
+  const row=(nm,why,val,chg,imp)=>`<div class="mrow" title="${why}"><div><b>${nm}</b><small>${why}</small></div><div class="val num">${val}${chg!=null?`<small style="color:${chg>0?css("--pos"):chg<0?css("--neg"):css("--muted")}">${sg(chg)}</small>`:""}</div><span class="imp ${imp[0]}">${imp[1]}</span></div>`;
+  if(D.dollar){const c=D.dollar.chg_1m;rows.push(row("달러 인덱스","달러 강세 → 달러 표시 유가 부담",fmt(D.dollar.last,1),c,Math.abs(c)<.5?["n","중립"]:c>0?["b","유가에 불리"]:["g","유가에 유리"]))}
+  if(D.fx)rows.push(row("원/달러",`원화 약세 → 원화 유가 ↑ (${D.fx.date})`,fmt(D.fx.last,1)+"원",null,["n","환율"]));
+  if(D.retail_gas)rows.push(row("미국 휘발유 소매가","소비자 부담 · 수요 파괴 신호",`$${fmt(D.retail_gas.last,2)}/갤런`,D.retail_gas.chg_1y,["n","1년 변화"]));
+  if(I.utilization)rows.push(row("정제 가동률","높을수록 원유 소비 많음",fmt(I.utilization.last,1)+"%",null,I.utilization.last>=92?["g","수요 강함"]:I.utilization.last<85?["b","수요 약함"]:["n","보통"]));
+  if(I.production)rows.push(row("미국 원유 생산","증산 → 공급 증가",`${fmt(I.production.last/1000,2)}백만 배럴/일`,null,["n",`주간 ${sg(I.production.chg_w/1000*1000,0," 천")}`]));
+  if(I.spr)rows.push(row("전략비축유 (SPR)","정부 비축 · 방출 시 공급 증가",`${fmt(I.spr.last/1000,0)}백만 배럴`,null,["n",`주간 ${sg(I.spr.chg_w/1000,1,"백만")}`]));
+  if(D.cot)rows.push(row("투기적 순매수","CFTC · 쏠림이 크면 역방향 위험",sg(D.cot.pct_oi)+" OI",null,D.cot.pct_10y<20?["g","비관 쏠림"]:D.cot.pct_10y>80?["b","낙관 쏠림"]:["n","중간"]));
+  $("#macro").innerHTML=rows.join("")+`<div class="sub" style="margin-top:6px;font-size:11.5px">FRED · EIA(${I.crude?I.crude.date:"—"} 주) · CFTC</div>`;
+}
+
+// ---------- supply ----------
+let INVK="crude";
+document.querySelectorAll("#invSeg button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#invSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");INVK=b.dataset.k;renderInv()});
+function renderInv(){
+  const I=D.inventory&&D.inventory[INVK];if(!I||!I.season){$("#invChart").innerHTML='<div class="empty">데이터 없음</div>';return}
+  const s=I.season;
+  lineChart($("#invChart"),{series:[{name:"올해",color:css("--teal"),w:2.8,data:s.map(r=>[r[0]*DAY,r[1]/1000,dayStr(r[0])])},{name:"5년 평균",color:css("--muted"),data:s.map(r=>[r[0]*DAY,r[2]/1000])}],dashed:[1],band:s.map(r=>[r[0]*DAY,r[3]/1000,r[4]/1000]),h:280,area:false,yfmt:v=>fmt(v,0)+"M",xfmt:ymFmt});
+  const st=O.inventoryState(I.dev);
+  $("#invNote").innerHTML=`<b>${I.label}</b> ${fmt(I.last/1000,1)}백만 배럴 (${I.date} 주, 주간 ${sg(I.chg_w/1000,1,"백만")}) · 같은 주 5년 평균 ${fmt(I.avg5/1000,1)}백만 대비 <b>${sg(I.dev)}</b> — ${st.label}. 지난 15년 괴리 중 백분위 ${fmt(I.dev_pct)}.`;
+}
+function renderInvDev(){
+  const dv=D.inventory&&D.inventory.crude&&D.inventory.crude.devhist;if(!dv)return;
+  const host=$("#invDevChart");host.innerHTML="";const W=host.clientWidth||600,H=280,p={l:54,r:46,t:12,b:26};
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,height:H},host);const x0=dv[0][0],x1=W_.t[N];const X=d=>p.l+(d-x0)/(x1-x0)*(W-p.l-p.r);
+  const g=[];let j=0;for(const [d] of dv){while(j+1<W_.t.length&&W_.t[j+1]<=d)j++;g.push([d,W_.p[j]])}
+  const gl=Math.log(Math.min(...g.map(x=>x[1]))*.9),gh=Math.log(Math.max(...g.map(x=>x[1]))*1.05);
+  const vals=dv.map(x=>x[1]),ml=Math.min(...vals),mh=Math.max(...vals),pad=(mh-ml)*.06;
+  const YG=v=>H-p.b-(Math.log(v)-gl)/(gh-gl)*(H-p.t-p.b),YM=v=>p.t+(v-(ml-pad))/((mh+pad)-(ml-pad))*(H-p.t-p.b);
+  [10,20,40,80,160].forEach(t=>{if(Math.log(t)<gl||Math.log(t)>gh)return;el("line",{x1:p.l,x2:W-p.r,y1:YG(t),y2:YG(t),stroke:css("--line")},svg);txt(svg,p.l-6,YG(t)+4,"$"+t,{"text-anchor":"end"})});
+  const st=niceStep((mh-ml)/4);for(let t=Math.ceil(ml/st)*st;t<=mh;t+=st)txt(svg,W-p.r+6,YM(t)+4,(t>0?"+":"")+t.toFixed(0)+"%",{fill:css("--teal")});
+  el("line",{x1:p.l,x2:W-p.r,y1:YM(0),y2:YM(0),stroke:css("--teal"),"stroke-opacity":.35,"stroke-dasharray":"4 4"},svg);
+  for(let y=2000;y<=2026;y+=4){const d=Date.UTC(y,0,1)/DAY;if(d>=x0)txt(svg,X(d),H-6,y,{"text-anchor":"middle"})}
+  const path=(pts,c)=>el("path",{d:"M"+pts.map(q=>q.map(v=>v.toFixed(1)).join(",")).join("L"),fill:"none",stroke:c,"stroke-width":2,"stroke-linejoin":"round"},svg);
+  path(dv.map(([d,v])=>[X(d),YM(v)]),css("--teal"));path(g.map(([d,v])=>[X(d),YG(v)]),css("--oil"));
+}
+function renderCurve(){
+  const C=D.curve;if(!C){$("#curveChart").innerHTML='<div class="empty">선물 곡선 데이터 없음</div>';return}
+  const base=Date.parse(C.pts[0][0]+"-15");
+  const ser=[{name:`오늘 (${C.date})`,color:css("--violet"),w:2.8,data:C.pts.map((x,i)=>[base+i*30.44*DAY,x[1],x[0]])}];
+  // stored snapshots (m1,m2,m3,m6,m12): show the oldest one at least 20 days back
+  const H=C.hist||[],old=H.filter(r=>r[0]<=H.at(-1)[0]-20).at(-1);
+  if(old){const idx=[0,1,2,5,11];ser.push({name:`${dayStr(old[0])} 스냅샷`,color:css("--muted"),data:C.pts.map((x,i)=>{const k=idx.indexOf(i);return [base+i*30.44*DAY,k>=0?old[k+1]:NaN]})})}
+  lineChart($("#curveChart"),{series:ser,h:260,area:false,dashed:[1],yfmt:v=>"$"+fmt(v,0),xfmt:x=>{const d=new Date(x);return `${String(d.getUTCFullYear()).slice(2)}.${String(d.getUTCMonth()+1).padStart(2,"0")}`}});
+  const cs=O.curveState(C.roll_ann);
+  $("#curveSub").textContent=`월물별 종가 · ${C.pts[0][0]} ~ ${C.pts.at(-1)[0]} 인도분`;
+  $("#curveNote").innerHTML=`<b style="color:${css(cs.tone)}">${cs.label}</b> · 근월물→차월물 롤 수익 연 ${sg(C.roll_ann)}, 근월물 대비 12개월물 ${sg(-C.m1_m12)}. ${cs.plain} 과거 곡선은 이 파이프라인이 매일 저장한 스냅샷이 쌓이면서 늘어납니다(${H.length}일치 보관).`;
+}
+function renderRoll(){
+  const R=D.realized_roll;if(!R)return;
+  lineChart($("#rollChart"),{series:[{name:"USO − 현물 (1년)",color:css("--violet"),data:R.hist.map(([d,v])=>[d*DAY,v,dayStr(d)])},{name:"0",color:css("--line2"),data:R.hist.map(([d])=>[d*DAY,0])}],h:240,area:false,yfmt:v=>(v>0?"+":"")+v.toFixed(0)+"%p",xfmt:yearFmt});
+  const v=R.hist.map(x=>x[1]),neg=v.filter(x=>x<0).length/v.length;
+  $("#rollNote").innerHTML=`지금 <b>${sg(R.last,1,"%p")}</b> (${R.date}) · 2007년 이후 1년 구간의 <b>${(neg*100).toFixed(0)}%</b>에서 USO가 현물보다 뒤처졌습니다(콘탱고·보수). 최저 ${fmt(Math.min(...v),0)}%p, 최고 +${fmt(Math.max(...v),0)}%p.`;
+}
+let CRY=5;
+document.querySelectorAll("#crackRng button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#crackRng button").forEach(x=>x.classList.remove("on"));b.classList.add("on");CRY=+b.dataset.y;renderCrack()});
+function renderCrack(){
+  const C=D.crack;if(!C)return;const end=C.hist.at(-1)[0];const h=C.hist.filter(x=>x[0]>=end-CRY*366);
+  lineChart($("#crackChart"),{series:[{name:"3-2-1 크랙",color:css("--teal"),data:h.map(([d,v])=>[d*DAY,v,dayStr(d)])},{name:"10년 평균",color:css("--muted"),data:h.map(([d])=>[d*DAY,C.mean_10y])}],dashed:[1],h:240,yfmt:v=>"$"+fmt(v,0),xfmt:CRY>10?yearFmt:ymFmt});
+}
+function renderCot(){
+  const C=D.cot;if(!C)return;
+  lineChart($("#cotChart"),{series:[{name:"순매수 % OI",color:css("--gold"),data:C.hist.map(([d,v])=>[d*DAY,v,dayStr(d)])}],h:240,yfmt:v=>v.toFixed(0)+"%",xfmt:yearFmt});
+  $("#cotNote").innerHTML=`지금 <b>${sg(C.pct_oi)}</b> (${fmt(C.net)}계약, ${C.date}) · 최근 10년 백분위 <b>${fmt(C.pct_10y)}</b>. 낮을수록 투기 자금이 비관적입니다. 검증 결과는 아래 "지표 예측력 검증"을 참고하세요.`;
+}
+
+// ---------- products ----------
+const pcFirst=Math.max(2007,new Date(USO?USO.t[0]*DAY:0).getUTCFullYear()+1),lastYear=+D.wti.date.slice(0,4);
+for(let y=pcFirst;y<=lastYear-1;y++)$("#pcStart").add(new Option(y+"년~",y,false,y===2017));
+$("#pcStart").onchange=renderProducts;
+function renderProducts(){
+  if(!USO||!D.fx){$("#products").style.display="none";return}
+  const y=+$("#pcStart").value,start=Date.UTC(y,0,1)/DAY,fx=D.fx.hist,E_=D.etf;
+  const days=USO.t.filter(d=>d>=start);const st=days[0];
+  const at=O.at,base=(h,conv)=>{const b=at(h,st)*(conv?at(fx,st):1);return d=>at(h,d)*(conv?at(fx,d):1)/b};
+  const S=[["WTI 현물 (원화 환산)","--muted",base(D.wti.hist,1)],["USO (원화 환산)","--primary",base(E_.USO.hist,1)]];
+  if(E_.KODEX_WTI&&E_.KODEX_WTI.hist[0][0]<=st)S.push([D.etf_names.KODEX_WTI,"--oil",base(E_.KODEX_WTI.hist,0)]);
+  if(E_.TIGER_OIL&&E_.TIGER_OIL.hist[0][0]<=st)S.push([D.etf_names.TIGER_OIL,"--violet",base(E_.TIGER_OIL.hist,0)]);
+  const dd=thin(days,3);
+  lineChart($("#pcChart"),{series:S.map(([n,c,f])=>({name:n,color:css(c),data:dd.map(d=>[d*DAY,f(d),dayStr(d)])})),h:300,area:false,log:true,yfmt:v=>fmt(v,2)+"배",xfmt:yearFmt});
+  $("#pcLegend").innerHTML=S.map(([n,c])=>`<span style="--c:var(${c})">${n}</span>`).join("")+(E_.KODEX_WTI&&E_.KODEX_WTI.hist[0][0]>st?`<span class="muted" style="--c:transparent">KODEX는 ${dayStr(E_.KODEX_WTI.hist[0][0]).slice(0,4)}년 상장 — 시작 연도를 2017 이후로</span>`:"");
+  const C=O.compareProducts(D,start);
+  $("#pcTable").innerHTML=`<tr><th>상품 (${dayStr(C.start)} ~)</th><th>누적</th><th>연환산</th></tr>`+C.rows.map(r=>`<tr><td>${r.invest?"":'<span class="muted">'}${r.n}${r.invest?"":"</span>"}<br><small class="muted">${r.note}</small></td><td class="num ${cls(r.ret)}">${sg(r.ret*100,1)}</td><td class="num">${sg((Math.pow(1+r.ret,1/C.years)-1)*100,1)}</td></tr>`).join("");
+  const pr=(k,v,d)=>`<div class="kv"><span>${k}<br><small style="color:var(--dim)">${d}</small></span><b class="num ${cls(v)}">${isFinite(v)?sg(v*100,1,"%p"):"—"}</b></div>`;
+  $("#pcParts").innerHTML=pr("① 롤오버·운용비용",C.parts.roll,"USO − 현물 (달러)")+pr("② 환헤지·국내 운용",C.parts.hedge,"KODEX(H) − USO (달러)")+pr("③ 환율 효과",C.parts.fx,"현물 원화 − 현물 달러");
+  renderLev();
+}
+$("#levK").oninput=renderLev;
+function renderLev(){
+  if(!USO)return;const k=+$("#levK").value||2,end=USO.t.length-1;
+  const rows=[["최근 1년",365],["최근 3년",1096],["최근 5년",1826],["2020년 (마이너스 유가 해)",null,Date.UTC(2020,0,1)/DAY,Date.UTC(2020,11,31)/DAY],["2022년",null,Date.UTC(2022,0,1)/DAY,Date.UTC(2022,11,31)/DAY]];
+  $("#levTable").innerHTML=`<tr><th>기간</th><th>USO</th><th>단순 ×${k}</th><th>매일 ×${k} (실제)</th><th>차이</th><th>매일 −1배</th></tr>`+rows.map(([n,back,a,b])=>{
+    const i0=back?USO.t.findIndex(d=>d>=USO.t[end]-back):USO.t.findIndex(d=>d>=a),i1=back?end:USO.t.findIndex(d=>d>b)-1;if(i0<0||i1<=i0)return "";
+    const r=O.leverage(USO,i0,i1,k);return `<tr><td>${n}</td><td class="num ${cls(r.under)}">${sg(r.under*100,0)}</td><td class="num">${sg(r.naive*100,0)}</td><td class="num ${cls(r.actual)}" style="font-weight:700">${sg(r.actual*100,0)}</td><td class="num ${cls(r.drag)}">${sg(r.drag*100,0,"%p")}</td><td class="num ${cls(r.inverse)}">${sg(r.inverse*100,0)}</td></tr>`}).join("");
+}
+
+// ---------- patterns ----------
+let seaFrom=0;const MN=["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+function renderSeason(){
+  const S=GE.seasonality(W_,seaFrom);const host=$("#seaChart");host.innerHTML="";const W=host.clientWidth||600,H=220,p={l:40,r:6,t:20,b:24};
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,height:H},host);const mx=Math.max(...S.months.map(m=>Math.abs(m.mean)))*1.25;
+  const Y=v=>p.t+(1-(v+mx)/(2*mx))*(H-p.t-p.b),bw=(W-p.l-p.r)/12;
+  [-mx*.8,0,mx*.8].forEach(t=>{el("line",{x1:p.l,x2:W-p.r,y1:Y(t),y2:Y(t),stroke:t?css("--line"):css("--line2")},svg);txt(svg,p.l-6,Y(t)+4,(t*100).toFixed(1)+"%",{"text-anchor":"end"})});
+  S.months.forEach((m,i)=>{const x=p.l+i*bw+bw*.18;const r=el("rect",{x,width:bw*.64,y:Math.min(Y(m.mean),Y(0)),height:Math.max(1,Math.abs(Y(m.mean)-Y(0))),rx:4,fill:m.mean>=0?css("--oil"):css("--neg")},svg);
+    const ti=el("title",{},r);ti.textContent=`${MN[i]}: 평균 ${(m.mean*100).toFixed(2)}% · 중앙값 ${(m.median*100).toFixed(2)}% · 상승 ${(m.win*100).toFixed(0)}% (n=${m.n})`;
+    txt(svg,x+bw*.32,m.mean>=0?Y(m.mean)-5:Y(m.mean)+13,(m.win*100).toFixed(0)+"%",{"text-anchor":"middle","font-size":10,fill:css("--muted")});
+    txt(svg,x+bw*.32,H-6,i+1,{"text-anchor":"middle"})});
+  const T=S.table,yrs=Object.keys(T).map(Number).sort((a,b)=>b-a).slice(0,12);
+  $("#ymTable").innerHTML=`<tr><th>연도</th>${MN.map((m,i)=>`<th>${i+1}</th>`).join("")}<th>연간</th></tr>`+yrs.map(y=>{const row=T[y];let tot=1;for(let m=0;m<12;m++)if(row[m]!=null)tot*=1+row[m];
+    return `<tr><td>${y}</td>${MN.map((_,m)=>row[m]==null?"<td></td>":`<td style="${heat(row[m],.15)}">${(row[m]*100).toFixed(1)}</td>`).join("")}<td style="${heat(tot-1,.6)};font-weight:700">${((tot-1)*100).toFixed(1)}</td></tr>`}).join("");
+}
+document.querySelectorAll("#seaSeg button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#seaSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");seaFrom=+b.dataset.y;renderSeason()});
+
+// ---------- validation ----------
+let FSEL=null;
+function renderValidation(){
+  if(!MD||!MD.factors){$("#validation").style.display="none";return}
+  $("#mGen").textContent="모델 계산 "+MD.generated_at.replace("T"," ").slice(0,16)+" UTC";
+  const F=MD.factors;if(FSEL==null){const k=F.findIndex(f=>f.id==="inv");FSEL=k>=0?k:0}
+  const vc=v=>v==="예측력 없음"||v==="표본 부족"?"n":v==="약함"?"w":"y";
+  $("#icTable").innerHTML=`<tr><th>지표</th><th>1개월</th><th>3개월</th><th>6개월</th><th>판정 (3개월)</th></tr>`+F.map((f,k)=>`<tr class="click ${k===FSEL?"sel":""}" data-k="${k}"><td>${f.n}<br><small class="muted">${f.desc} · ${f.from?dayStr(f.from).slice(0,4):"—"}~</small></td>${[21,63,126].map(h=>`<td class="num" style="${Math.abs(f.ic[h])>=.05?"font-weight:700":"color:var(--muted)"}">${f.ic[h]!=null?(f.ic[h]>0?"+":"")+f.ic[h].toFixed(3):"—"}</td>`).join("")}<td><span class="icv ${vc(f.verdict)}">${f.verdict}</span></td></tr>`).join("");
+  document.querySelectorAll("#icTable tr.click").forEach(r=>r.onclick=()=>{FSEL=+r.dataset.k;renderValidation()});
+  const f=F[FSEL];$("#qTitle").textContent=`${f.n} · 5분위별 이후 3개월`;
+  const unit=["tempS","tempL"].includes(f.id)?"":f.id==="crack"?"$":"%";
+  const fv=v=>!isFinite(v)?"":unit==="$"?"$"+v.toFixed(1):v.toFixed(1)+unit;
+  $("#qTable").innerHTML=`<tr><th>구간</th><th>범위</th><th>평균 수익률</th><th>상승 확률</th><th>표본</th></tr>`+f.bins.map((b,k)=>`<tr class="${k===f.nowBin?"sel":""}"><td>${k+1}분위${k===f.nowBin?" · <b>지금</b>":""}</td><td class="num muted">${k?fv(b.lo):"~"} ~ ${k<4?fv(b.hi):""}</td><td class="num ${cls(b.mean)}" style="font-weight:700">${sg(b.mean*100)}</td><td class="num">${(b.up*100).toFixed(0)}%</td><td class="num muted">${fmt(b.n)}</td></tr>`).join("");
+  const ic=f.ic[63];
+  $("#valNote").innerHTML=`지금 값 <b>${fv(f.now)}</b> (${f.nowBin+1}분위). ${Math.abs(ic)>=.05?`과거에는 이 값이 <b>${ic>0?"높을수록 이후 유가가 더 올랐습니다":"높을수록 이후 유가가 덜 올랐습니다"}</b>.`:"이후 수익률과 뚜렷한 관계가 없었습니다."} 표본은 5거래일 간격이지만 3개월 수익률 구간이 서로 겹치므로 통계적 유의성은 실제보다 높아 보입니다. 분위 경계는 전체 기간 값으로 정했습니다(설명용).`;
+}
+
+// ---------- forecast ----------
+function renderForecast(){
+  const host=$("#fan");host.innerHTML="";if(!MD){host.innerHTML='<div class="empty">모델 결과 없음 — node etl/build_oil_models.js 실행</div>';return}
+  const RG=MD.range,Hs=[21,63,126,252],Ms=[0,1,3,6,12];
+  const qAt=(m,k)=>m===0?0:RG[Hs[[1,3,6,12].indexOf(m)]].now.q[k],price=(m,k)=>P*Math.exp(qAt(m,k));
+  $("#fParam").textContent=`보정 혼합 모델 · 과거 검증에서 12개월 80% 범위 적중 ${(RG[252].eval.model.c80*100).toFixed(0)}%`;
+  const W=host.clientWidth||360,H=200,p={l:52,r:8,t:10,b:22};
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,height:H},host);
+  const lo=price(12,0)*.95,hi=price(12,4)*1.02;const X=m=>p.l+m/12*(W-p.l-p.r),Y=v=>H-p.b-(v-lo)/(hi-lo)*(H-p.t-p.b);
+  const st=niceStep((hi-lo)/4);for(let t=Math.ceil(lo/st)*st;t<=hi;t+=st){el("line",{x1:p.l,x2:W-p.r,y1:Y(t),y2:Y(t),stroke:css("--line")},svg);txt(svg,p.l-6,Y(t)+4,"$"+fmt(t),{"text-anchor":"end"})}
+  const band=(a,b,op)=>{const top=Ms.map(m=>[X(m),Y(price(m,b))]),bot=Ms.map(m=>[X(m),Y(price(m,a))]).reverse();el("path",{d:"M"+top.concat(bot).map(v=>v.join(",")).join("L")+"Z",fill:css("--cyan"),"fill-opacity":op},svg)};
+  band(0,4,.12);band(1,3,.22);
+  el("path",{d:"M"+Ms.map(m=>[X(m),Y(price(m,2))].join(",")).join("L"),stroke:css("--cyan"),"stroke-width":2.3,fill:"none"},svg);
+  [0,3,6,9,12].forEach(m=>txt(svg,X(m),H-5,m?m+"M":"현재",{"text-anchor":m===12?"end":m?"middle":"start"}));
+  const rows=[["하단 10%",0],["중앙 50%",2],["상단 90%",4]];
+  $("#fTable").innerHTML=`<tr><th>범위</th><th>3M</th><th>6M</th><th>12M</th></tr>`+rows.map(([nm,k])=>`<tr><td>${nm}</td>${[3,6,12].map(m=>{const v=price(m,k);return `<td class="num">$${fmt(v)}<br><small class="${cls(v-P)}">${v>=P?"+":"−"}${Math.abs((v/P-1)*100).toFixed(1)}%</small></td>`}).join("")}</tr>`).join("");
+  const HL={21:"1개월",63:"3개월",126:"6개월",252:"12개월"};
+  $("#mScore").innerHTML=`<tr><th>검증</th><th>80% 적중<br><small class="muted">채택 모델</small></th><th>80% 적중<br><small class="muted">기준선</small></th><th>정확도<br><small class="muted">vs 기준선</small></th></tr>`+Hs.map(h=>{const r=RG[h].eval;return `<tr><td>${HL[h]}</td><td class="num" style="font-weight:700;color:${Math.abs(r.model.c80-.8)<=.05?css("--cyan"):css("--gold")}">${(r.model.c80*100).toFixed(0)}%</td><td class="num">${(r.base.c80*100).toFixed(0)}%</td><td class="num">${sg(r.skill*100)}</td></tr>`}).join("")+
+    `<tr><td colspan="4" class="sub" style="white-space:normal">매월 그 시점까지의 데이터로만 다시 계산해 실제 결과와 비교 (${RG[252].eval.n}~${RG[21].eval.n}회). 기준선(과거 수익률 분포)은 12개월 범위를 너무 좁게 잡아 ${(RG[252].eval.base.c80*100).toFixed(0)}%만 맞혔고, 채택 모델은 과거 오차로 범위를 넓혀 약속한 80%를 지킵니다. 방향은 맞히지 못합니다.</td></tr>`;
+}
+function renderRegime(){
+  if(!MD||!MD.hmm)return;const HM=MD.hmm,RC={"하락 국면":"--neg","안정 국면":"--dim","고변동 국면":"--gold"};const col=k=>RC[HM.states[k].name];
+  $("#regLegend").innerHTML=HM.states.map((st,k)=>`<span style="--c:var(${col(k)})">${st.name}</span>`).join("");
+  const cur=HM.now.indexOf(Math.max(...HM.now));
+  $("#regNow").innerHTML=`<div class="sub" style="margin-bottom:8px">지금(${dayStr(HM.nowDate)} 주) 국면 확률</div>`+HM.states.map((st,k)=>`<div style="display:grid;grid-template-columns:96px 1fr 46px;gap:10px;align-items:center;margin:6px 0"><b style="font-size:13.5px;${k===cur?"":"font-weight:500;color:var(--muted)"}">${st.name}</b><div style="height:10px;border-radius:6px;background:var(--line2);overflow:hidden"><i style="display:block;height:100%;width:${HM.now[k]*100}%;background:${css(col(k))}"></i></div><span class="num" style="text-align:right;font-weight:700">${(HM.now[k]*100).toFixed(0)}%</span></div>`).join("");
+  $("#regTable").innerHTML=`<tr><th>국면</th><th>연 수익률</th><th>연 변동성</th><th>평균 지속</th><th>기간 비중</th></tr>`+HM.states.map((st,k)=>`<tr><td><span class="dot" style="--c:var(${col(k)})"></span>${st.name}</td><td class="num ${cls(st.muAnn)}">${(st.muAnn*100).toFixed(1)}%</td><td class="num">${(st.sigAnn*100).toFixed(1)}%</td><td class="num">${st.stayWeeks}주</td><td class="num">${(st.share*100).toFixed(0)}%</td></tr>`).join("")+`<tr><td colspan="5" class="sub" style="white-space:normal">주간 수익률은 ±${HM.clip*100}%로 잘라서 학습했습니다(2020년 4월 마이너스 유가 주간이 혼자 한 국면을 차지하지 않도록).</td></tr>`;
+  const host=$("#regChart");host.innerHTML="";const W=host.clientWidth||600,H=260,p={l:54,r:10,t:10,b:26};
+  const rb=HM.ribbon,from=rb[0][0],x1=W_.t[N];const gi=W_.t.map((d,i)=>[d,W_.p[i]]).filter(x=>x[0]>=from).filter((_,i)=>i%2===0);
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,height:H},host);const X=d=>p.l+(d-from)/(x1-from)*(W-p.l-p.r);
+  const lo=Math.log(Math.min(...gi.map(x=>x[1]))*.9),hi=Math.log(Math.max(...gi.map(x=>x[1]))*1.05);const Y=v=>H-p.b-(Math.log(v)-lo)/(hi-lo)*(H-p.t-p.b);
+  rb.forEach((r,i)=>{const nx=i+1<rb.length?rb[i+1][0]:x1;const nm=HM.states[r[1]].name;el("rect",{x:X(r[0]),y:p.t,width:Math.max(.5,X(nx)-X(r[0])),height:H-p.t-p.b,fill:css(RC[nm]),opacity:nm==="안정 국면"?.06:.24},svg)});
+  [10,20,40,80,160].forEach(t=>{if(Math.log(t)<lo||Math.log(t)>hi)return;el("line",{x1:p.l,x2:W-p.r,y1:Y(t),y2:Y(t),stroke:css("--line")},svg);txt(svg,p.l-6,Y(t)+4,"$"+t,{"text-anchor":"end"})});
+  for(let y=new Date(from*DAY).getUTCFullYear()+1;y<=new Date(x1*DAY).getUTCFullYear();y+=2)txt(svg,X(Date.UTC(y,0,1)/DAY),H-8,y,{"text-anchor":"middle"});
+  el("path",{d:"M"+gi.map(x=>[X(x[0]).toFixed(1),Y(x[1]).toFixed(1)].join(",")).join("L"),fill:"none",stroke:css("--oil"),"stroke-width":2},svg);
+}
+
+// ---------- backtest (USO by default: the roll is part of the result) ----------
+const BT_STR=[
+  {id:"buyhold",n:"매수 후 보유",c:"--oil",on:true},
+  {id:"ma",n:"이동평균 50/200",c:"--violet",on:true},
+  {id:"above",n:"200일선 위 보유",c:"--cyan",on:false},
+  {id:"vol",n:"변동성 타깃 25%",c:"--primary",on:true},
+  {id:"inv",n:"재고 부족일 때만 (5년 평균 이하)",c:"--teal",on:false},
+  {id:"roll",n:"실현 롤 + 일 때만 (백워데이션)",c:"--gold",on:true},
+];
+BT_STR.forEach(s=>{const l=document.createElement("label");l.className="chk";l.innerHTML=`<input type="checkbox" ${s.on?"checked":""}><span class="dot" style="--c:var(${s.c})"></span>${s.n}`;l.querySelector("input").onchange=e=>{s.on=e.target.checked;queueBT()};$("#btStrats").appendChild(l)});
+let btT;function queueBT(){clearTimeout(btT);btT=setTimeout(renderBT,120)}
+["btAsset","btStart","btCost","btCash","btLag"].forEach(id=>$("#"+id).addEventListener("input",queueBT));
+function btSeries(){return $("#btAsset").value==="spot"||!USO?W_:USO}
+function fillYears(){const S=btSeries(),f=new Date(S.t[0]*DAY).getUTCFullYear()+1,cur=+$("#btStart").value||2008;$("#btStart").innerHTML="";for(let y=f;y<lastYear-1;y++)$("#btStart").add(new Option(y,y,false,y===Math.max(f,cur)))}
+$("#btAsset").addEventListener("change",fillYears);fillYears();
+function btTargets(id,S){
+  if(id==="inv"){const v=GE.alignSeries(S.t,D.inventory.crude.devhist,O.LAGS.inventory);return O.filterTargets(S.t.length,i=>v[i]<0)}
+  if(id==="roll"){const v=GE.alignSeries(S.t,D.realized_roll.hist,O.LAGS.daily);return O.filterTargets(S.t.length,i=>v[i]>0)}
+  if(id==="vol")return GE.targets("vol",S,{target:25,len:60});
+  if(id==="above")return GE.targets("above",S,{len:200});
+  return GE.targets(id,S,id==="ma"?{fast:50,slow:200}:{});
+}
+const pctf=(v,d=1)=>isFinite(v)?(v*100).toFixed(d)+"%":"—";
+function renderBT(){
+  const t0=performance.now(),S=btSeries(),y=+$("#btStart").value;
+  const o={start:Math.max(0,S.t.findIndex(d=>d>=Date.UTC(y,0,1)/DAY)-1),cost:+$("#btCost").value/100,cash:+$("#btCash").value/100,lag:+$("#btLag").value,band:.05};
+  const runs=BT_STR.filter(s=>s.on).filter(s=>s.id!=="inv"||(D.inventory&&D.inventory.crude)).filter(s=>s.id!=="roll"||D.realized_roll).map(s=>{const res=GE.backtest(S,btTargets(s.id,S),{...o,band:s.id==="vol"?o.band:0});return {...s,res,m:GE.metrics(res,o.cash)}});
+  if(!runs.length){["#btChart","#ddChart","#btTable","#yrTable"].forEach(q=>$(q).innerHTML="");return}
+  lineChart($("#btChart"),{series:runs.map(r=>({name:r.n,color:css(r.c),data:thin(r.res.t.map((d,i)=>[d*DAY,r.res.eq[i],dayStr(d)]),3)})),h:300,area:false,log:true,yfmt:v=>fmt(v,v<3?2:1)+"배",xfmt:yearFmt});
+  lineChart($("#ddChart"),{series:runs.map(r=>{const dd=GE.drawdown(r.res.eq);return {name:r.n,color:css(r.c),data:thin(r.res.t.map((d,i)=>[d*DAY,dd[i]*100,dayStr(d)]),3)}}),h:300,area:false,yfmt:v=>v.toFixed(0)+"%",xfmt:yearFmt});
+  const rows=[["최종 (배)",m=>m.final.toFixed(2)],["CAGR",m=>pctf(m.cagr)],["변동성",m=>pctf(m.vol)],["샤프",m=>m.sharpe.toFixed(2)],["MDD",m=>pctf(m.mdd)],["최장 손실 회복",m=>(m.uwDays/365.25).toFixed(1)+"년"],["칼마",m=>m.calmar.toFixed(2)],["연 거래 횟수",m=>m.tradesPerYear.toFixed(1)],["평균 보유 비중",m=>pctf(m.exposure,0)]];
+  const key={CAGR:"cagr","샤프":"sharpe",MDD:"mdd","칼마":"calmar"},best={};for(const k in key)best[k]=Math.max(...runs.map(r=>r.m[key[k]]));
+  $("#btTable").innerHTML=`<tr><th>지표</th>${runs.map(r=>`<th><span class="dot" style="--c:var(${r.c})"></span>${r.n.split(" (")[0]}</th>`).join("")}</tr>`+rows.map(([nm,f])=>`<tr><td class="muted">${nm}</td>${runs.map(r=>`<td class="num" style="${key[nm]&&r.m[key[nm]]===best[nm]?"color:var(--cyan);font-weight:700":""}">${f(r.m)}</td>`).join("")}</tr>`).join("")+
+    `<tr><td colspan="${runs.length+1}" class="sub" style="white-space:normal">${S===USO?"USO 가격에는 롤오버 손익과 운용보수가 이미 들어 있습니다.":"현물은 실제로 살 수 없어 롤오버 손익이 빠진 가상 결과입니다."} 기간 ${dayStr(runs[0].res.t[0])} ~ ${dayStr(runs[0].res.t.at(-1))} · 최고값 <span style="color:var(--cyan)">강조</span></td></tr>`;
+  const Yr=runs.map(r=>GE.yearly(r.res));const yrs=[...new Set(Yr.flatMap(x=>Object.keys(x)))].map(Number).sort((a,b)=>b-a);
+  $("#yrTable").innerHTML=`<tr><th>연도</th>${runs.map(r=>`<th><span class="dot" style="--c:var(${r.c})"></span></th>`).join("")}</tr>`+yrs.map(yy=>`<tr><td>${yy}</td>${Yr.map(x=>x[yy]==null?"<td></td>":`<td style="${heat(x[yy],.6)}">${(x[yy]*100).toFixed(1)}</td>`).join("")}</tr>`).join("");
+  const ob={...o,band:0},gr=GE.grid(S,ob),all=gr.flat().filter(Boolean).map(c=>c.sharpe),mx=Math.max(...all),mn=Math.min(...all);
+  $("#gridTable").innerHTML=`<tr><th>빠른 \\ 느린</th>${GE.GRID_SLOW.map(s=>`<th>${s}일</th>`).join("")}</tr>`+gr.map((row,i)=>`<tr><td>${GE.GRID_FAST[i]}일</td>${row.map(c=>c?`<td style="background:color-mix(in srgb,var(--cyan) ${(10+60*(c.sharpe-mn)/((mx-mn)||1)).toFixed(0)}%,transparent)" title="CAGR ${pctf(c.cagr)} · MDD ${pctf(c.mdd)}"><b>${c.sharpe.toFixed(2)}</b><br><small class="muted">${pctf(c.cagr)}</small></td>`:"<td class='muted'>—</td>").join("")}</tr>`).join("");
+  const wf=GE.walkForward(S,ob,5);
+  if(!wf.choices.length){$("#wfChart").innerHTML='<div class="empty">시작 연도 이후 데이터가 5년 이상 필요합니다.</div>';$("#wfTable").innerHTML=""}
+  else{const s0=wf.oosStart,fixed=GE.backtest(S,GE.targets("ma",S,{fast:50,slow:200}),{...ob,start:s0}),bh=GE.backtest(S,GE.targets("buyhold",S),{...ob,start:s0});
+    const R=[["워크포워드",wf.res,"--pos"],["50/200 고정",fixed,"--violet"],["보유",bh,"--oil"]];
+    lineChart($("#wfChart"),{series:R.map(([nm,r,c])=>({name:nm,color:css(c),data:thin(r.t.map((d,i)=>[d*DAY,r.eq[i],dayStr(d)]),3)})),h:240,area:false,log:true,yfmt:v=>fmt(v,2)+"배",xfmt:yearFmt});
+    $("#wfTable").innerHTML=`<tr><th>OOS ${dayStr(S.t[s0]).slice(0,4)}~</th><th>CAGR</th><th>샤프</th><th>MDD</th></tr>`+R.map(([nm,r,c])=>{const m=GE.metrics(r,o.cash);return `<tr><td><span class="dot" style="--c:var(${c})"></span>${nm}</td><td class="num">${pctf(m.cagr)}</td><td class="num">${m.sharpe.toFixed(2)}</td><td class="num neg">${pctf(m.mdd)}</td></tr>`}).join("")}
+  $("#btTime").textContent=`계산 ${Math.round(performance.now()-t0)}ms`;
+}
+
+// ---------- quality ----------
+function renderQuality(){
+  $("#genAt").textContent="ETL 실행 "+D.generated_at.replace("T"," ").slice(0,16)+" UTC";
+  $("#qualTable").innerHTML=`<tr><th>시리즈</th><th>행 수</th><th>시작</th><th>최근</th><th>지연</th><th>최대 공백</th><th>급변동 (±25%)</th><th>상태</th></tr>`+
+  D.quality.map(q=>{const lim=q.ok_limit||10,ok=q.rows&&q.stale_days<=lim;return `<tr><td><b>${q.name}</b></td><td class="num">${fmt(q.rows)}</td><td class="num">${q.first||"—"}</td><td class="num">${q.last||"—"}</td><td class="num">${q.stale_days}일 <small class="muted">/ ${lim}</small></td><td class="num">${q.max_gap_days}일</td><td class="num">${q.jumps.length?q.jumps.slice(-4).map(j=>`${j[0]} (${j[1]>0?"+":""}${j[1]}%)`).join("<br>"):"—"}</td><td><span class="pill ${ok?"live":"manual"}">${ok?"정상":"확인 필요"}</span></td></tr>`}).join("");
+  $("#qualNote").innerHTML=`${D.negative?`WTI 원자료에는 ${D.negative.date}의 <b>${D.negative.value}달러</b>(마이너스)가 있습니다. 로그 수익률을 정의할 수 없어 분석에서는 그날을 빼고 전후 거래일을 바로 잇습니다. `:""}EIA 주간 자료는 금요일 기준으로 다음 주 수요일에, CFTC는 화요일 기준으로 금요일에 발표되므로 모델은 각각 5일·3일 뒤부터 사용합니다. 지연 허용치는 시리즈마다 다릅니다(일간 10일, 주간 16일, CPI 75일).`;
+}
+
+// ---------- nav / boot ----------
+const links=[...document.querySelectorAll(".side a")];
+addEventListener("scroll",()=>{let cur=links[0];links.forEach(a=>{const t=document.querySelector(a.getAttribute("href"));if(t&&t.getBoundingClientRect().top<160)cur=a});links.forEach(a=>a.classList.toggle("on",a===cur))},{passive:true});
+$("#foot").innerHTML=`Oil Miner · ${Object.values(D.sources).join(" · ")}<br>정보 제공 목적이며 투자 권유가 아닙니다. 과거 통계는 미래를 보장하지 않습니다. 원유 ETF·ETN은 선물 롤오버, 환헤지, 보수, 괴리율 때문에 유가와 다르게 움직입니다.`;
+function renderAll(){renderKPI();renderPrice();renderMacro();renderInv();renderInvDev();renderCurve();renderRoll();renderCrack();renderCot();renderProducts();renderSeason();renderValidation();renderForecast();renderRegime();renderBT();renderQuality()}
+window.GMUI.onChange(renderAll);
+renderAll();
+window.GMUI.init({asOf:D.wti.date});
+let rt;addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(renderAll,150)});
+</script>
+</body>
+</html>
