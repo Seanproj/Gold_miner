@@ -89,6 +89,7 @@ node --test site/js/engine.test.js  # 백테스트 엔진 테스트 (미래 데�
 - `docs/01_feasibility.md` — 실현 가능성 평가
 - `docs/02_master_prompt.md` — 마스터 프롬프트 · 단계별 프롬프트
 - `docs/03_ux_review.md` — UX/UI 전문가 리뷰와 개선 내역
+- `docs/04_oil_master_prompt.md` — 유가 분석 사이트(Oil Miner)용 마스터 프롬프트
 - `docs/design/` — 디자인 콘셉트와 시안 이미지
 - `site/concept_v0.2.html` — 이전 디자인 시안(보관용)
 
