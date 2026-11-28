@@ -138,7 +138,7 @@
       { id: "spot", n: "WTI 현물 (달러 기준)", cur: "USD", ret: spot, invest: false, note: "직접 살 수 없는 기준 가격" },
       { id: "spotKrw", n: "WTI 현물 (원화 환산)", cur: "KRW", ret: spotKrw, invest: false, note: "환율 변화까지 포함" },
     ];
-    if (E_.USO) rows.push({ id: "uso", n: "USO (미국 상장)", cur: "USD", ret: r(E_.USO.hist), invest: true, note: "근월물 선물 · 보수 연 0.6% 내외" }, { id: "usoKrw", n: "USO (원화 환산)", cur: "KRW", ret: (1 + r(E_.USO.hist)) * fxr - 1, invest: true, note: "해외주식 계좌 · 환율 노출" });
+    if (E_.USO) rows.push({ id: "uso", n: "USO (미국 상장)", cur: "USD", ret: r(E_.USO.hist), invest: true, note: "근월물 선물 · 보수 연 약 0.7%" }, { id: "usoKrw", n: "USO (원화 환산)", cur: "KRW", ret: (1 + r(E_.USO.hist)) * fxr - 1, invest: true, note: "해외주식 계좌 · 환율 노출" });
     if (E_.KODEX_WTI) rows.push({ id: "kodex", n: D.etf_names.KODEX_WTI, cur: "KRW", ret: r(E_.KODEX_WTI.hist), invest: true, note: "국내 상장 · 환헤지(H)" });
     if (E_.TIGER_OIL && E_.TIGER_OIL.hist[0][0] <= start) rows.push({ id: "tiger", n: D.etf_names.TIGER_OIL, cur: "KRW", ret: r(E_.TIGER_OIL.hist), invest: true, note: "국내 상장 · 환헤지(H) · 여러 월물 분산" });
     const get = (id) => (rows.find((x) => x.id === id) || {}).ret;

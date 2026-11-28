@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Oil Miner</title>
 <meta name="description" content="지금 유가가 과거 데이터 기준으로 싼지 비싼지, 수급은 어떤지, 원유 ETF로 사면 실제로 얼마를 얻고 잃는지 보여주는 유가 보드">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23F08C3A'/%3E%3Cpath d='M16 6s7 8 7 13a7 7 0 0 1-14 0c0-5 7-13 7-13z' fill='%232A1000'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#080D18">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Oil Miner · 유가 보드">
+<meta property="og:description" content="지금 유가가 싼지 비싼지, 수급은 어떤지, 원유 ETF로 사면 실제로 얼마를 얻고 잃는지 보여주는 유가 보드">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
@@ -122,6 +127,11 @@
     <a class="tile glance in d5" href="#q2"><div class="gl-h">선물 기간구조<svg><use href="#i-curve"/></svg></div><div class="gl-v" id="gC">—</div><div class="gl-s" id="gCs">—</div><div class="go">무슨 뜻인가요? →</div></a>
   </div>
 
+  <div class="card check in d6" id="check">
+    <div class="check-h"><b>지금 거래한다면 · 꼭 볼 5가지</b><span id="ckNote">예산은 아래 Q4 입력값 기준 · 데이터 매일 갱신</span></div>
+    <div class="ck" id="ck"></div>
+  </div>
+
   <section id="brief">
     <div class="q"><em>오늘</em><h2>오늘의 브리핑</h2></div>
     <p class="lead" id="briefLead">매일 데이터가 갱신되면 자동으로 다시 작성됩니다. 모든 문장은 수치에서만 만들어지며 추측은 넣지 않습니다.</p>
@@ -182,6 +192,17 @@
       <div class="prod" id="prod"></div>
       <div class="parts" id="parts"></div>
       <details class="why"><summary>왜 이렇게 차이가 나나요?</summary><div id="prodWhy">—</div></details>
+    </div>
+    <div class="where" id="where" style="background:var(--surface)">
+      <h3>어떤 상품으로 살까요? 비용·세금</h3>
+      <p>원유는 ETF·ETN으로만 투자할 수 있고, 상품마다 세금과 위험이 다릅니다.</p>
+      <div class="tscroll"><table class="sched wt">
+        <tr><th>상품</th><th>비용</th><th>팔 때 세금 (차익)</th><th>이런 분께</th></tr>
+        <tr class="best"><td>국내 원유 ETF<small>KODEX WTI원유선물(H) · TIGER 원유선물Enhanced(H)</small></td><td>매매 수수료 + 연 보수<small>환헤지(H) 비용·이익 포함</small></td><td>배당소득세 15.4%</td><td>원화로 간편하게, 환율 영향 없이</td></tr>
+        <tr><td>해외 원유 ETF<small>USO (WTI) · BNO (Brent)</small></td><td>환전 비용 + 수수료 + 연 보수 약 0.7%</td><td>양도소득세 22%<small>연 250만원 공제 · 해외주식 손익 통산</small></td><td>원화 약세(환율 상승)까지 함께 노릴 때</td></tr>
+        <tr><td>레버리지·인버스 ETN·ETF<small>2배 · −1배 등</small></td><td>높은 보수 + 괴리율 위험</td><td>배당소득세 15.4%</td><td>며칠 단위 단기 매매만 (아래 참고)</td></tr>
+      </table></div>
+      <p class="fine">일반적인 조건이며 세법 개정·증권사에 따라 다릅니다. 원유 ETF는 장중 가격과 순자산가치(NAV)가 벌어질 수 있으니 주문 전 괴리율을 확인하세요.</p>
     </div>
     <div class="card" style="margin-top:16px">
       <b style="font-size:18px;letter-spacing:-.4px">레버리지·인버스 상품 주의</b>
@@ -422,6 +443,24 @@ function renderLev(){
   $("#lev").innerHTML=c("기초자산 (USO)",r.under,"같은 기간 실제 수익률")+c("2배 · 단순 기대",r.naive,"수익률 × 2")+c("2배 · 실제 (매일 2배)",r.actual,`차이 ${sgn(r.drag*100,0).replace("%","%p")}`)+c("인버스 · 실제 (매일 −1배)",r.inverse,`단순 기대 ${sgn(r.naiveInv*100,0)}`);
 }
 
+
+// ---- "지금 거래한다면" checklist (top of page; follows the budget input)
+function renderCheck(){
+  const B=budget(),w=E.planWeights(style),Pn=E.PLANS[style],R12=window.OM_MODELS&&window.OM_MODELS.range&&window.OM_MODELS.range[252];
+  const low=R12?Math.exp(R12.now.q[0])-1:NaN,man=v=>fmt(v/1e4,v<1e5?1:0)+"만원";
+  const items=CHECK_ITEMS(B,w,Pn,low,man);
+  $("#ck").innerHTML=items.map((x,k)=>`<a href="${x.href}"><span class="n"><i>${k+1}</i>${x.k}</span><span class="v ${x.warn?"warn":""}">${x.v}</span><span class="s">${x.s}</span><span class="go2">${x.go} →</span></a>`).join("");
+}
+const VOLR=D.gold_vol_1y&&D.wti.vol_1y?D.wti.vol_1y/D.gold_vol_1y:NaN;
+const CHECK_ITEMS=(B,w,Pn,low,man)=>{
+  const cs=O.curveState(curve&&curve.roll_ann);
+  return [
+    {k:"지금 판단",v:V.title,s:V.sub,href:"#q1",go:"가격 수준"},
+    {k:"사는 방법 · 비중",v:`오늘 ${man(B*w[0])}`,s:`${Pn.n}: 이후 매월 <b>${man(B*(w[1]||0))}</b>씩 ${w.length-1}번.`+(isFinite(VOLR)?` 최근 1년 유가 변동성은 금의 <b>${VOLR.toFixed(1)}배</b> — 같은 위험이면 금보다 금액을 줄이세요.`:""),href:"#q4",go:"매수 계획"},
+    {k:"무엇으로",v:"국내 원유 ETF (환헤지)",s:`KODEX·TIGER 원유선물(H) · 세금 15.4%. 지금 선물은 <b>${cs.label}</b>${cs.key==="back"?" → ETF가 현물보다 유리한 구조":cs.key==="contango"?" → ETF가 현물보다 불리한 구조":""}.`,warn:cs.key==="contango",href:"#where",go:"상품·세금 비교"},
+    {k:"손실 대비",v:isFinite(low)?`나쁜 경우 1년 뒤 ${man(B*(1+low))}`:"—",s:isFinite(low)?`${man(B)}을 지금 다 사면, 10번 중 1번은 이보다 나빴습니다(<b>${sgn(low*100)}</b>). 레버리지 상품은 더 큽니다.`:"",href:"#q3",go:"1년 범위"},
+    {k:"줄일 기준",v:`$${fmt(s1250[n],1)} 아래면 매수 중단`,warn:!aboveLong||!golden,s:`5년 평균선, 지금 ${sgn(L.dev[n]*100)} ${aboveLong?"위":"아래"} · 추세 <b>${golden?"상승":"하락"}</b> (50일선 ${golden?">":"<"} 200일선)`,href:"#q5",go:"매도 신호"},
+  ]};
 // ---- Q4 plan
 let style=V.plan;
 const PLAN_KEYS=Object.keys(E.PLANS);
@@ -443,6 +482,7 @@ function renderPlan(){
   const b=PALL[style];
   $("#planKey").innerHTML=`유가는 1년 안에 30~50% 움직이는 일이 흔해 <b>한 번에 사는 것보다 나눠 사는 편이 "산 직후 급락"의 후회를 줄입니다.</b> 1986년 이후 매일 ${E.PLANS[style].n}으로 샀다면 평균 단가는 일시 매수 대비 <b>${sgn(b.mean*100)}</b>, 더 싸게 산 경우 <b>${(b.cheaper*100).toFixed(0)}%</b>, 산 직후 크게 떨어진 상위 10% 상황에서는 <b>${sgn(b.best10*100)}</b> 싸게 샀습니다. 원유는 장기 보유용이라기보다 비중을 작게 가져가는 자산입니다.`;
   $("#storeRef").innerHTML=(KX?`<span>KODEX WTI원유선물(H) <b>${fmt(KX.last)}원</b> <span style="color:var(--dim)">(${KX.date})</span></span>`:"")+(D.etf.TIGER_OIL?`<span>TIGER 원유선물Enhanced(H) <b>${fmt(D.etf.TIGER_OIL.last)}원</b></span>`:"");
+  renderCheck();
 }
 
 // ---- Q5 rules (evidence on the investable USO series)
@@ -469,7 +509,7 @@ function renderRules(){
 UI.onChange(render);
 render();
 UI.init({asOf:D.wti.date});
-let rt;addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>{spark();pmap();curveSvg()},150)});
+let rt,lastW=innerWidth;addEventListener("resize",()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rt);rt=setTimeout(()=>{spark();pmap();curveSvg()},150)});
 })();
 </script>
 </body>

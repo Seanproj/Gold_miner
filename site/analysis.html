@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gold Miner 상세 분석</title>
+<meta name="description" content="금 가격·거시 분석, 시그널 검증, 12개월 범위, 백테스트, 거래 데스크">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23F5B942'/%3E%3Ctext x='16' y='21.5' font-family='Arial' font-weight='900' font-size='13' text-anchor='middle' fill='%232A1A00'%3EAu%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#080D18">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Gold Miner 상세 분석">
+<meta property="og:description" content="금 가격·거시 분석, 시그널 검증, 12개월 범위, 백테스트, 거래 데스크">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -669,7 +675,7 @@ function renderAll(){renderPremium();renderKPI();renderPrice();renderMacro();ren
 window.GMUI.onChange(renderAll);
 renderAll();
 window.GMUI.init({asOf:G.date});
-let rt;addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(renderAll,150)});
+let rt,lastW=innerWidth;addEventListener("resize",()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rt);rt=setTimeout(renderAll,150)});
 </script>
 </body>
 </html>

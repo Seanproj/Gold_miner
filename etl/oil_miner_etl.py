@@ -478,6 +478,9 @@ def build_bundle(data: dict, reports: list) -> dict:
     usd = data.get("DTWEXBGS", {})
     if usd:
         out["dollar"] = {"last": usd[max(usd)], "date": max(usd).isoformat(), "chg_1m": pct_change(usd, 30), "hist": ser(week_end(usd), 3)}
+    gold = load_raw("XAUUSD")  # written by the gold ETL; used to compare volatility for sizing
+    if gold:
+        out["gold_vol_1y"] = annual_vol(gold)
     if wti:
         out["wti"]["monthly"] = [[d.strftime("%Y-%m"), round(v, 2)] for d, v in sorted(month_end(wti).items())]
     return out

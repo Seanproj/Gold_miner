@@ -40,7 +40,7 @@
 
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;letter-spacing:-.01em;word-break:keep-all;overflow-wrap:break-word}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:8px}
@@ -92,4 +92,4 @@ details.why b{color:var(--text)}
 .in.d1{animation-delay:.06s}.in.d2{animation-delay:.12s}.in.d3{animation-delay:.18s}.in.d4{animation-delay:.24s}.in.d5{animation-delay:.3s}.in.d6{animation-delay:.36s}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.in{animation:none}*{transition:none!important}}
 
-@media (max-width:760px){.gh-in{padding:0 16px;gap:10px}.gh-fresh{display:none}.gh-logo b{display:none}.gh-sub{padding:0 16px 10px}.gh-tabs a{padding:8px 10px;font-size:14px}.gh-btn .lbl{display:none}.gh-asset a{padding:6px 9px}}
+@media (max-width:760px){.gh-tabs{-webkit-mask-image:linear-gradient(90deg,#000 82%,transparent);mask-image:linear-gradient(90deg,#000 82%,transparent)}.gh-in{padding:0 16px;gap:10px}.gh-fresh{display:none}.gh-logo b{display:none}.gh-sub{padding:0 16px 10px}.gh-tabs a{padding:8px 10px;font-size:14px}.gh-btn .lbl{display:none}.gh-asset a{padding:6px 9px}}

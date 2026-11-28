@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gold Miner</title>
 <meta name="description" content="지금 금 가격이 과거 데이터 기준으로 싼지 비싼지, 얼마를 어떻게 나눠 살지 한눈에 보여주는 금 시세 보드">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23F5B942'/%3E%3Ctext x='16' y='21.5' font-family='Arial' font-weight='900' font-size='13' text-anchor='middle' fill='%232A1A00'%3EAu%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#080D18">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Gold Miner · 금 시세 보드">
+<meta property="og:description" content="지금 금 가격이 싼지 비싼지, 얼마를 어디서 어떻게 나눠 살지 데이터로 보여주는 금 시세 보드">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
@@ -70,6 +75,11 @@
     <a class="tile glance in d5" href="#q4"><div class="gl-h">추세 신호<svg><use href="#i-compass"/></svg></div><div id="gT"></div><div class="gl-s" id="gTs">—</div><div class="go">매도 신호 보기 →</div></a>
   </div>
 
+  <div class="card check in d6" id="check">
+    <div class="check-h"><b>지금 거래한다면 · 꼭 볼 5가지</b><span id="ckNote">예산은 아래 Q3 입력값 기준 · 데이터 매일 갱신</span></div>
+    <div class="ck" id="ck"></div>
+  </div>
+
   <!-- BRIEF + ALERTS -->
   <section id="brief">
     <div class="q"><em>오늘</em><h2>오늘의 브리핑</h2></div>
@@ -130,9 +140,21 @@
       <div class="timeline" id="timeline" aria-hidden="true"></div>
       <div class="tscroll"><table class="sched" id="sched"></table></div>
       <div class="keyline"><svg class="ico"><use href="#i-info"/></svg><div id="planKey">—</div></div>
+      <div class="where" id="where">
+        <h3>어디서 살까요? 방법별 비용·세금</h3>
+        <p>같은 금이라도 사는 방법에 따라 비용과 세금이 크게 다릅니다.</p>
+        <div class="tscroll"><table class="sched wt">
+          <tr><th>방법</th><th>살 때 드는 비용</th><th>팔 때 세금 (차익)</th><th>이런 분께</th></tr>
+          <tr class="best"><td>KRX 금시장<small>증권사 '금현물' 계좌 · 1g 단위</small></td><td>매매 수수료 0.2~0.3% 안팎</td><td>비과세 · 부가세 면제<small>실물로 찾으면 부가세 10%</small></td><td>가장 싸게 사고팔고 싶을 때</td></tr>
+          <tr><td>금 ETF<small>국내 상장</small></td><td>매매 수수료 + 연 보수</td><td>배당소득세 15.4%</td><td>주식 계좌로 간편하게</td></tr>
+          <tr><td>골드뱅킹<small>은행 금 통장</small></td><td>은행 고시 매매 차이(스프레드)</td><td>배당소득세 15.4%</td><td>은행 앱으로 소액 적립</td></tr>
+          <tr><td>골드바 · 금은방<small>실물</small></td><td>부가세 10% + 판매 마진</td><td>비과세<small>되팔 때 매입가가 더 낮음</small></td><td>실물을 직접 보관하고 싶을 때</td></tr>
+        </table></div>
+        <p class="fine">일반적인 조건이며 증권사·은행·세법 개정에 따라 다릅니다. 거래 전에 꼭 확인하세요. 이자·배당 등 금융소득이 연 2,000만원을 넘으면 종합과세될 수 있습니다.</p>
+      </div>
       <div class="store">
         <div>
-          <h3>실제로 살 때 가격 확인하기</h3>
+          <h3>실제로 살 때 가격 확인하기</h3
           <p>위 계획의 금액은 국제가를 원화로 환산한 기준입니다. 매장에서 사고팔 때는 수수료와 부가세가 붙으니, 사기 전에 실제 고시가를 확인하세요.</p>
           <div class="ref num" id="storeRef"></div>
         </div>
@@ -310,6 +332,23 @@ function renderAhead(){
    <div style="font-size:13.5px;color:var(--muted);margin-top:18px">원/돈 기준(현재 환율) · 국제가 $${fmt(q[0],0)} ~ $${fmt(q[4],0)}. <b style="color:var(--text)">오를지 내릴지는 어떤 모델도 동전 던지기보다 크게 낫지 않았습니다.</b> 그래서 방향 대신 "얼마나 움직일 수 있는지"만 보여드립니다.</div>`;
 }
 
+
+// ---- "지금 거래한다면" checklist (top of page; follows the budget input)
+function renderCheck(){
+  const B=budget(),w=E.planWeights(style),Pn=E.PLANS[style],R12=window.GM_MODELS&&window.GM_MODELS.range&&window.GM_MODELS.range[252];
+  const low=R12?Math.exp(R12.now.q[0])-1:NaN,man=v=>fmt(v/1e4,v<1e5?1:0)+"만원";
+  const items=CHECK_ITEMS(B,w,Pn,low,man);
+  $("#ck").innerHTML=items.map((x,k)=>`<a href="${x.href}"><span class="n"><i>${k+1}</i>${x.k}</span><span class="v ${x.warn?"warn":""}">${x.v}</span><span class="s">${x.s}</span><span class="go2">${x.go} →</span></a>`).join("");
+}
+const CHECK_ITEMS=(B,w,Pn,low,man)=>{
+  const pr=D.domestic&&D.domestic.premium,pv=pr?pr.last:NaN;
+  return [
+    {k:"지금 판단",v:V[0],s:`${V[1]}`,href:"#q1",go:"가격 수준"},
+    {k:"사는 방법",v:`오늘 ${man(B*w[0])}`,s:`${Pn.n}: 이후 매월 <b>${man(B*(w[1]||0))}</b>씩 ${w.length-1}번 · 총 ${man(B)}`,href:"#q3",go:"매수 계획"},
+    {k:"어디서 · 비용",v:isFinite(pv)&&pv>2?`KRX 금시장 · 지금 ${sgn(pv)} 비쌈`:"KRX 금시장이 가장 저렴",warn:isFinite(pv)&&pv>2,s:isFinite(pv)?`국내 시세가 국제가보다 <b>${sgn(pv)}</b> ${pv>2?"높습니다. 며칠 나눠 사며 괴리가 줄기를 기다리세요.":"— 정상 범위입니다."} 금은방 실물은 부가세 10%가 붙습니다.`:"부가세·차익 세금이 없습니다.",href:"#where",go:"비용·세금 비교"},
+    {k:"손실 대비",v:isFinite(low)?`나쁜 경우 1년 뒤 ${man(B*(1+low))}`:"—",s:isFinite(low)?`${man(B)}을 지금 다 사면, 10번 중 1번은 이보다 나빴습니다(<b>${sgn(low*100)}</b>). 잃어도 되는 돈으로만 사세요.`:"",href:"#q2",go:"1년 범위"},
+    {k:"줄일 기준",v:`$${fmt(s1000[n],0)} 아래면 매수 중단`,warn:!aboveLong,s:`${fmt(wonDon(s1000[n])/1e4,1)}만원/돈 · 4년 평균선, 지금 ${sgn(L.dev[n]*100)} ${aboveLong?"위":"아래"} · 추세 <b>${golden?"상승":"하락"}</b>`,href:"#q4",go:"매도 신호"},
+  ]};
 // ---- Q3 plan
 let style=V[3];
 const PLAN_KEYS=Object.keys(E.PLANS);
@@ -331,6 +370,7 @@ function renderPlan(){
   const a=PSIM[style],b=PALL[style];
   $("#planKey").innerHTML=`분할 매수는 <b>수익을 늘리는 방법이 아니라 "사자마자 떨어지는 후회"를 줄이는 보험</b>입니다. ${E.PLANS[style].n}은 과거 평균적으로 한 번에 산 것보다 <b>${sgn(b.mean*100)}</b> 단가였습니다.`;
   $("#planHonest").innerHTML=`2000년 이후 매일 이 방식으로 샀다고 가정하면, 평균 매입 단가는 한 번에 사는 것보다 <b>${sgn(b.mean*100)}</b>였고 더 싸게 산 경우는 <b>${(b.cheaper*100).toFixed(0)}%</b>였습니다. 금이 장기적으로 오르는 자산이라 <b>나눠 살수록 평균적으로는 조금 비싸게</b> 샀습니다. 대신 산 직후 크게 떨어진 상위 10% 상황에서는 <b>${sgn(b.best10*100)}</b> 싸게 사서 손실을 줄였습니다.`+(a.n>30?` 지금과 비슷한 상황(${a.n}일)에서는 평균 <b>${sgn(a.mean*100)}</b>였습니다.`:"");
+  renderCheck();
 }
 
 // ---- Q4 rules
@@ -355,7 +395,7 @@ function renderRules(){
 UI.onChange(render);
 render();
 UI.init({asOf:D.gold.date});
-let rt;addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>{spark();pmap()},150)});
+let rt,lastW=innerWidth;addEventListener("resize",()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rt);rt=setTimeout(()=>{spark();pmap()},150)});
 })();
 </script>
 </body>
